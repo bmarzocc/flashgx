@@ -1,0 +1,82 @@
+import FWCore.ParameterSet.Config as cms
+import FWCore.Utilities.FileUtils as FileUtils
+
+process = cms.Process("MicroAODAnalysis")
+
+process.load("FWCore.MessageService.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.GeometryDB_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+#process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff") # gives deprecated message in 80X but still runs
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag,'80X_mcRun2_asymptotic_2016_TrancheIV_v7','')
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32( -1 ) )
+process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )
+                                                                       
+process.source = cms.Source("PoolSource",
+    skipEvents = cms.untracked.uint32(0),                       
+    fileNames = cms.untracked.vstring(
+    '/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_1.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_10.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_11.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_12.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_13.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_14.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_15.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_16.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_17.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_18.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_19.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_2.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_20.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_21.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_22.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_23.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_24.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_25.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_26.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_27.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_28.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_29.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_3.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_30.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_31.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_32.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_33.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_34.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_35.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_36.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_37.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_38.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_39.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_4.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_40.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_41.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_42.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_43.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_44.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_45.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_46.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_47.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_48.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_49.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_5.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_50.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_6.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_7.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_8.root',
+'/store/user/bmarzocc/MicroAODSIM_PreMixing_phoMVAId/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIISummer16_PreMixing_MicroAOD/MicroAODSIM/180419_100649/0000/myMicroAODOutputFile_9.root')
+)
+
+process.load('flashgx.MicroAODAnalysis.FlashGXAnalysis_cfi')
+
+process.TFileService = cms.Service("TFileService",
+    fileName = cms.string('FlashGXAnalysis.root')
+)
+
+process.p = cms.Path(
+    process.flashggUnpackedJets*
+    process.flashgxanalysis
+)
