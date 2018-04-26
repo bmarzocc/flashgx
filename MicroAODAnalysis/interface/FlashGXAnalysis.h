@@ -59,6 +59,7 @@
 #include "TProfile2D.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
+#include "TGraphAsymmErrors.h"
 
 #include <fstream>
 #include <string>
@@ -97,13 +98,14 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       bool isGoodPhotonCutBased(edm::Ptr<flashgg::Photon> ipho, double rho);
       bool isGoodPhotonMVA(edm::Ptr<flashgg::Photon> ipho);
       bool isInEcal(edm::Ptr<flashgg::Photon> ipho);
-      bool isGoodTrigger(TH1D* efficiency, double threshold);
-      void saveTrigger(TH1D* efficiency_tmp, TH1D* efficiency);
+      bool isGoodTrigger(TGraphAsymmErrors* efficiency, double threshold);
+      TH1D* fixBins(TH1D* h);
+      void saveTrigger(TGraphAsymmErrors* efficiency_tmp, TGraphAsymmErrors* efficiency);
       double phoIsoCorr(edm::Ptr<flashgg::Photon> ipho, double rho);
       double metPhiCorr(edm::Ptr<flashgg::Met> met);
       double computeMtMETPhoton(edm::Ptr<flashgg::Photon> ipho, edm::Ptr<flashgg::Met> met);
-      vector<edm::Ptr<flashgg::Jet> > goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl);
-      vector<edm::Ptr<flashgg::Jet> > vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl);
+      std::vector<reco::Candidate::LorentzVector> goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl);
+      std::vector<reco::Candidate::LorentzVector> vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl);
       
       edm::EDGetTokenT<edm::TriggerResults> triggerToken_;  
       edm::EDGetTokenT<double> rhoToken_;  
@@ -177,21 +179,22 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       bool useElectronLooseID_;
 
       std::vector<edm::InputTag> inputTagJets_;
+      vector<reco::Candidate::LorentzVector> vbfjets;
 
       double jetPtThres_;
       double jetEtaThres_;
       double drJetPhoCut_;
-
       bool usePuJetID_;
       bool useJetID_;
       bool merge3rdJet_;
       double thirdJetDRCut_;
       double rmsforwardCut_;
       std::string jetIDLevel_;
-      double drJetPhoVBFCut_;
+      std::vector<double> pujidEtaBins_;
       std::vector<double> pujid_wp_pt_bin_1_;
       std::vector<double> pujid_wp_pt_bin_2_;
       std::vector<double> pujid_wp_pt_bin_3_;
+      std::vector<double> pujid_wp_pt_bin_4_;
       
       edm::Service<TFileService> iFile;
       
@@ -205,37 +208,72 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       TH1D *h_Pho_Energy;      
       TH1D *h_Pho_Pt;          
       TH1D *h_Pho_Eta;         
-      TH1D *h_Pho_Phi;         
+      TH1D *h_Pho_Phi; 
+      TH1D *h_Pho_Energy_Final;
+      TH1D *h_Pho_Pt_Final;
+      TH1D *h_Pho_Eta_Final;
+      TH1D *h_Pho_Phi_Final;    
 
       TH1D *h_MET_Pt_noCut;       
       TH1D *h_MET_Phi_noCut;   
       TH1D *h_MET_Pt;         
       TH1D *h_MET_Phi;      
-
+      TH1D *h_MET_Pt_Final;         
+      TH1D *h_MET_Phi_Final;   
+  
       TH1D *h_dPhiMETPho_noCut;            
       TH1D *h_MtMETPho_noCut;   
       TH1D *h_dPhiMETPho;            
-      TH1D *h_MtMETPho;             
+      TH1D *h_MtMETPho;    
+      TH1D *h_dPhiMETPho_Final;            
+      TH1D *h_MtMETPho_Final;             
 
+      TH1D *h_nJets_noCut;
+      TH1D *h_Jet_Energy_noCut;            
+      TH1D *h_Jet_Pt_noCut;                
+      TH1D *h_Jet_Eta_noCut;               
+      TH1D *h_Jet_Phi_noCut;               
+      TH1D *h_dPhiJetPho_noCut;            
+      TH1D *h_dEtaJetPho_noCut;            
+      TH1D *h_dRJetPho_noCut;    
+
+      TH1D *h_nJets; 
       TH1D *h_Jet_Energy;            
       TH1D *h_Jet_Pt;                
       TH1D *h_Jet_Eta;               
       TH1D *h_Jet_Phi;               
-
       TH1D *h_dPhiJetPho;            
       TH1D *h_dEtaJetPho;            
-      TH1D *h_dRJetPho;    
+      TH1D *h_dRJetPho;      
 
-      TH1D *h_nJets_noCut; 
-      TH1D *h_nJets;  
-      TH1D *h_nVBFJets;       
+      TH1D *h_VBFjet1_Energy;  
+      TH1D *h_VBFjet1_Pt;
+      TH1D *h_VBFjet1_Eta;
+      TH1D *h_VBFjet1_Phi;
+      TH1D *h_VBFjet1_Energy_Final;  
+      TH1D *h_VBFjet1_Pt_Final;
+      TH1D *h_VBFjet1_Eta_Final;
+      TH1D *h_VBFjet1_Phi_Final;
+     
+      
+      TH1D *h_VBFjet2_Energy;  
+      TH1D *h_VBFjet2_Pt;
+      TH1D *h_VBFjet2_Eta;
+      TH1D *h_VBFjet2_Phi;
+      TH1D *h_VBFjet2_Energy_Final;  
+      TH1D *h_VBFjet2_Pt_Final;
+      TH1D *h_VBFjet2_Eta_Final;
+      TH1D *h_VBFjet2_Phi_Final;
 
+      TH1D *h_VBFjets_invMass;
+      TH1D *h_VBFjets_dEta;
+      
       unsigned int HLT_pathsSize = 0;
       std::vector<std::string> HLT_Names; 
       std::vector<TH1D*> HLT_PhotonPt_efficiency_tmp; 
       std::vector<TH1D*> HLT_MET_efficiency_tmp; 
-      std::vector<TH1D*> HLT_PhotonPt_efficiency; 
-      std::vector<TH1D*> HLT_MET_efficiency; 
+      std::vector<TGraphAsymmErrors*> HLT_PhotonPt_efficiency; 
+      std::vector<TGraphAsymmErrors*> HLT_MET_efficiency; 
       TH1D* HLT_PhotonPt_denum;
       TH1D* HLT_MET_denum;
 
@@ -249,7 +287,6 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       double nTotSelected_step5;
       double nTotSelected_step6;
       double nTotSelected_step7;
-      double nTotSelected_step8;
 };
 
 #endif

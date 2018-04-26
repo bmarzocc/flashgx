@@ -23,7 +23,8 @@
 
 using namespace std;
 
-void compareHisto(TH1F* h, string outputDir, string unit, string label1);
+void drawHisto(TH1F* h, string outputDir, string unit, string label1);
+void drawEfficiency(TGraphAsymmErrors* eff, string outputDir, string unit, string label1);
 
 void draw_Plots() {
   
@@ -35,8 +36,10 @@ void draw_Plots() {
   TDirectory* dir1 = inFile1->GetDirectory("flashgxanalysis");
   
   vector<TH1F*> histos_f1;
+  vector<TGraphAsymmErrors*> graph_f1;
  
   TH1F* h_tmp;
+  TGraphAsymmErrors* g_tmp;
 
   TList* list = dir1->GetListOfKeys() ;
   if (!list) { printf("<E> No keys found in file\n") ; exit(1) ; }
@@ -46,25 +49,35 @@ void draw_Plots() {
       
   while ( (key = (TKey*)next()) ) {
     obj = key->ReadObj() ;
-    if (    (strcmp(obj->IsA()->GetName(),"TProfile")!=0)
-         && (!obj->InheritsFrom("TH2"))
-	 && (!obj->InheritsFrom("TH1")) 
+    if (    (strcmp(obj->IsA()->GetName(),"TProfile")==0)
+         || (obj->InheritsFrom("TH2"))
+	 || (obj->InheritsFrom("TH1")) 
        ) {
-      printf("<W> Object %s is not 1D or 2D histogram : "
-             "will not be converted\n",obj->GetName()) ;
+      h_tmp = (TH1F*)inFile1->Get((string("flashgxanalysis/")+string(obj->GetName())).c_str());
+      histos_f1.push_back(h_tmp);
     }
-    //printf("Histo name:%s title:%s\n",obj->GetName(),obj->GetTitle());
-    h_tmp = (TH1F*)inFile1->Get((string("flashgxanalysis/")+string(obj->GetName())).c_str());
-    histos_f1.push_back(h_tmp);
+    if ((obj->InheritsFrom("TGraphAsymmErrors"))
+       ) {
+      g_tmp = (TGraphAsymmErrors*)inFile1->Get((string("flashgxanalysis/")+string(obj->GetName())).c_str());
+      graph_f1.push_back(g_tmp);
+    }
+    
   }
 
   gROOT->SetBatch(kTRUE);
   for(unsigned int ii=0; ii<histos_f1.size(); ii++)
-      compareHisto(histos_f1.at(ii), string("../output"), string("GeV"), string("VBFHToGX"));
+  {
+      if(std::string(histos_f1.at(ii)->GetName()).find("h_n")==std::string::npos && std::string(histos_f1.at(ii)->GetName()).find("efficiency")==std::string::npos) histos_f1.at(ii)->Rebin(2);
+      if(std::string(histos_f1.at(ii)->GetName()).find("efficiency")==std::string::npos) drawHisto(histos_f1.at(ii), string("../output"), string("GeV"), string("VBFHToGX"));
+  }
+  for(unsigned int ii=0; ii<graph_f1.size(); ii++)
+  {
+      drawEfficiency(graph_f1.at(ii), string("../output"), string("GeV"), string("VBFHToGX"));
+  }
   
 }
 
-void compareHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", string label1 = "file1")
+void drawHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", string label1 = "file1")
 {
      h->SetLineColor(kBlack);
      h->SetLineWidth(2);
@@ -85,23 +98,6 @@ void compareHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", 
      if(maximum < h->GetMaximum()) maximum = h->GetMaximum();
      H2->GetYaxis()->SetRangeUser(0.9,1.5*maximum);
 
-     if(string(h->GetName()).find("HLT")!=std::string::npos && string(h->GetName()).find("PhotonPt")!=std::string::npos)
-     {
-        H2->GetXaxis()->SetTitle("photon_pt (GeV)");
-        H2->GetYaxis()->SetTitle("efficiency");
-        h->SetMarkerSize(1.);
-        h->SetMarkerStyle(20);
-        H2->GetYaxis()->SetRangeUser(0.,1.);
-     }
-     if(string(h->GetName()).find("HLT")!=std::string::npos && string(h->GetName()).find("MET")!=std::string::npos)
-     {
-        H2->GetXaxis()->SetTitle("MET (GeV)");
-        H2->GetYaxis()->SetTitle("efficiency");
-        h->SetMarkerSize(1.);
-        h->SetMarkerStyle(20);
-        H2->GetYaxis()->SetRangeUser(0.,1.);
-     }
-
      TLegend *leg;
      leg = new TLegend(0.68,0.70,0.88,0.90);
      leg->SetFillStyle(0);
@@ -115,7 +111,7 @@ void compareHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", 
      H2->Draw();
      if(string(h->GetName()).find("HLT")!=std::string::npos) h->Draw("P,same");
      else h->Draw("H,same");
-     leg->Draw("same");
+     //leg->Draw("same");
      c1->SaveAs((outputDir+"/"+string(h->GetName())+".png").c_str());
      c1->SaveAs((outputDir+"/"+string(h->GetName())+".pdf").c_str());
 
@@ -125,7 +121,7 @@ void compareHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", 
      H2->Draw();
      if(string(h->GetName()).find("HLT")!=std::string::npos) h->Draw("P,same");
      else h->Draw("H,same");
-     leg->Draw("same");
+     //leg->Draw("same");
      c2->SaveAs((outputDir+"/"+string(h->GetName())+"_log.png").c_str());
      c2->SaveAs((outputDir+"/"+string(h->GetName())+"_log.pdf").c_str());
 
@@ -134,4 +130,57 @@ void compareHisto(TH1F* h, string outputDir = "../output", string unit = "GeV", 
      delete H2;
      delete leg;
 }
+
+void drawEfficiency(TGraphAsymmErrors* eff, string outputDir = "../output", string unit = "GeV", string label1 = "file1")
+{
+     eff->SetLineColor(kBlack);
+     eff->SetLineWidth(2);
+     eff->GetYaxis()->SetRangeUser(0.,1.01);
+
+     // plotting
+     setStyle();
+
+     if(string(eff->GetName()).find("HLT")!=std::string::npos && string(eff->GetName()).find("PhotonPt_efficiency")!=std::string::npos)
+     {
+        eff->GetXaxis()->SetTitle("photon_pt (GeV)");
+        eff->GetYaxis()->SetTitle("efficiency");
+        eff->SetMarkerSize(1.);
+        eff->SetMarkerStyle(20);
+     }
+     if(string(eff->GetName()).find("HLT")!=std::string::npos && string(eff->GetName()).find("MET_efficiency")!=std::string::npos)
+     {
+        eff->GetXaxis()->SetTitle("MET (GeV)");
+        eff->GetYaxis()->SetTitle("efficiency");
+        eff->SetMarkerSize(1.);
+        eff->SetMarkerStyle(20);
+     }
+
+     TLegend *leg;
+     leg = new TLegend(0.68,0.70,0.88,0.90);
+     leg->SetFillStyle(0);
+     leg->SetBorderSize(0);
+     leg->SetTextSize(0.03);
+     leg->SetFillColor(0);
+     leg->AddEntry(eff, label1.c_str(), "l");
+     
+     TCanvas* c1 = new TCanvas("c1","c1",1);
+     FPCanvasStyle(c1);
+     eff->Draw("AP");
+     //leg->Draw("same");
+     c1->SaveAs((outputDir+"/"+string(eff->GetName())+".png").c_str());
+     c1->SaveAs((outputDir+"/"+string(eff->GetName())+".pdf").c_str());
+
+     /*TCanvas* c2 = new TCanvas("c2","c2",1);
+     FPCanvasStyle(c2);
+     c2->SetLogy();
+     eff->Draw("AP");
+     //leg->Draw("same");
+     c2->SaveAs((outputDir+"/"+string(eff->GetName())+"_log.png").c_str());
+     c2->SaveAs((outputDir+"/"+string(eff->GetName())+"_log.pdf").c_str());*/
+
+     delete c1;
+     //delete c2;
+     delete leg;
+}
+
 

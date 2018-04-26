@@ -58,6 +58,7 @@
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TRegexp.h"
+#include "TGraphAsymmErrors.h"
 
 #include <fstream>
 #include <string>
@@ -169,17 +170,17 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   jetPtThres_                       = iConfig.getParameter<double>("jetPtThres");
   jetEtaThres_                      = iConfig.getParameter<double>("jetEtaThres");             
   drJetPhoCut_                      = iConfig.getParameter<double>("drJetPhoCut");
-
   usePuJetID_                       = iConfig.getParameter<bool>("usePuJetID");
   useJetID_                         = iConfig.getParameter<bool>("useJetID");
   merge3rdJet_                      = iConfig.getParameter<bool>("merge3rdJet");
   thirdJetDRCut_                    = iConfig.getParameter<double>("thirdJetDRCut");
   rmsforwardCut_                    = iConfig.getParameter<double>("rmsforwardCut");
   jetIDLevel_                       = iConfig.getParameter<string>("jetIDLevel");
-  drJetPhoVBFCut_                   = iConfig.getParameter<double>("drJetPhoVBFCut");
+  pujidEtaBins_                     = iConfig.getParameter<std::vector<double> >("pujidEtaBins");
   pujid_wp_pt_bin_1_                = iConfig.getParameter<std::vector<double> >("pujidWpPtBin1");
   pujid_wp_pt_bin_2_                = iConfig.getParameter<std::vector<double> >("pujidWpPtBin2");
   pujid_wp_pt_bin_3_                = iConfig.getParameter<std::vector<double> >("pujidWpPtBin3");
+  pujid_wp_pt_bin_4_                = iConfig.getParameter<std::vector<double> >("pujidWpPtBin4");
 
   //output file and historgrams
   h_numberOfEvents        = iFile->make<TH1D>("h_numberOfEvents","h_numberOfEvents",10,-0.5,9.5);
@@ -193,30 +194,66 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   h_Pho_Pt                = iFile->make<TH1D>("h_Pho_Pt","h_Pho_Pt",100,0.,300.);
   h_Pho_Eta               = iFile->make<TH1D>("h_Pho_Eta","h_Pho_Eta",100,-3.,3.);
   h_Pho_Phi               = iFile->make<TH1D>("h_Pho_Phi","h_Pho_Phi",100,-3.5,3.5);
+  h_Pho_Energy_Final      = iFile->make<TH1D>("h_Pho_Energy_Final","h_Pho_Energy_Final",100,0.,600.);
+  h_Pho_Pt_Final          = iFile->make<TH1D>("h_Pho_Pt_Final","h_Pho_Pt_Final",100,0.,300.);
+  h_Pho_Eta_Final         = iFile->make<TH1D>("h_Pho_Eta_Final","h_Pho_Eta_Final",100,-3.,3.);
+  h_Pho_Phi_Final         = iFile->make<TH1D>("h_Pho_Phi_Final","h_Pho_Phi_Final",100,-3.5,3.5);
 
-  h_MET_Pt_noCut          = iFile->make<TH1D>("h_MET_Pt_noCut","h_MET_Pt_noCut",100,0.,300.);
+  h_MET_Pt_noCut          = iFile->make<TH1D>("h_MET_Pt_noCut","h_MET_Pt_noCut",200,0.,600.);
   h_MET_Phi_noCut         = iFile->make<TH1D>("h_MET_Phi_noCut","h_MET_Phi_noCut",100,-3.5,3.5);
-  h_MET_Pt                = iFile->make<TH1D>("h_MET_Pt","h_MET_Pt",100,0.,300.);
+  h_MET_Pt                = iFile->make<TH1D>("h_MET_Pt","h_MET_Pt",200,0.,600.);
   h_MET_Phi               = iFile->make<TH1D>("h_MET_Phi","h_MET_Phi",100,-3.5,3.5);
+  h_MET_Pt_Final          = iFile->make<TH1D>("h_MET_Pt_Final","h_MET_Pt_Final",200,0.,600.);
+  h_MET_Phi_Final         = iFile->make<TH1D>("h_MET_Phi_Final","h_MET_Phi_Final",100,-3.5,3.5);
  
   h_dPhiMETPho_noCut      = iFile->make<TH1D>("h_dPhiMETPho_noCut","h_dPhiMETPho_noCut",100,-3.5,3.5);
-  h_MtMETPho_noCut        = iFile->make<TH1D>("h_MtMETPho_noCut","h_MtMETPho_noCut",100,0.,200.);
+  h_MtMETPho_noCut        = iFile->make<TH1D>("h_MtMETPho_noCut","h_MtMETPho_noCut",200,0.,400.);
   h_dPhiMETPho            = iFile->make<TH1D>("h_dPhiMETPho","h_dPhiMETPho",100,-3.5,3.5);
-  h_MtMETPho              = iFile->make<TH1D>("h_MtMETPho","h_MtMETPho",100,0.,200.);
+  h_MtMETPho              = iFile->make<TH1D>("h_MtMETPho","h_MtMETPho",200,0.,400.);
+  h_dPhiMETPho_Final      = iFile->make<TH1D>("h_dPhiMETPho_Final","h_dPhiMETPho_Final",100,-3.5,3.5);
+  h_MtMETPho_Final        = iFile->make<TH1D>("h_MtMETPho_Final","h_MtMETPho_Final",200,0.,400.);
 
-  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",100,0.,600.);
+  h_nJets_noCut           = iFile->make<TH1D>("h_nJets_noCut","h_nJets_noCut",8,-0.5,7.5);
+  h_Jet_Energy_noCut      = iFile->make<TH1D>("h_Jet_Energy_noCut","h_Jet_Energy_noCut",100,0.,600.);
+  h_Jet_Pt_noCut          = iFile->make<TH1D>("h_Jet_Pt_noCut","h_Jet_Pt_noCut",100,0.,300.);
+  h_Jet_Eta_noCut         = iFile->make<TH1D>("h_Jet_Eta_noCut","h_Jet_Eta_noCut",150,-5.,5.);
+  h_Jet_Phi_noCut         = iFile->make<TH1D>("h_Jet_Phi_noCut","h_Jet_Phi_noCut",100,-3.5,3.5);
+  h_dPhiJetPho_noCut      = iFile->make<TH1D>("h_dPhiJetPho_noCut","h_dPhiJetPho_noCut",100,-3.5,3.5);
+  h_dEtaJetPho_noCut      = iFile->make<TH1D>("h_dEtaJetPho_noCut","h_dEtaJetPho_noCut",100,-3.5,3.5);
+  h_dRJetPho_noCut        = iFile->make<TH1D>("h_dRJetPho_noCut","h_dRJetPho_noCut",100,0.,6.);
+
+  h_nJets                 = iFile->make<TH1D>("h_nJets","h_nJets",8,-0.5,7.5);
+  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",200,0.,1200.);
   h_Jet_Pt                = iFile->make<TH1D>("h_Jet_Pt","h_Jet_Pt",100,0.,300.);
-  h_Jet_Eta               = iFile->make<TH1D>("h_Jet_Eta","h_Jet_Eta",100,-3.,3.);
+  h_Jet_Eta               = iFile->make<TH1D>("h_Jet_Eta","h_Jet_Eta",150,-5.,5.);
   h_Jet_Phi               = iFile->make<TH1D>("h_Jet_Phi","h_Jet_Phi",100,-3.5,3.5);
-
   h_dPhiJetPho            = iFile->make<TH1D>("h_dPhiJetPho","h_dPhiJetPho",100,-3.5,3.5);
   h_dEtaJetPho            = iFile->make<TH1D>("h_dEtaJetPho","h_dEtaJetPho",100,-3.5,3.5);
   h_dRJetPho              = iFile->make<TH1D>("h_dRJetPho","h_dRJetPho",100,0.,6.);
 
-  h_nJets_noCut           = iFile->make<TH1D>("h_nJets_noCut","h_nJets_noCut",8,-0.5,7.5);
-  h_nJets                 = iFile->make<TH1D>("h_nJets","h_nJets",8,-0.5,7.5);
-  h_nVBFJets              = iFile->make<TH1D>("h_nVBFJets","h_nVBFJets",8,-0.5,7.5);
+  h_VBFjet1_Energy        = iFile->make<TH1D>("h_VBFjet1_Energy","h_VBFjet1_Energy",200,0.,1200.);
+  h_VBFjet1_Pt            = iFile->make<TH1D>("h_VBFjet1_Pt","h_VBFjet1_Pt",200,0.,600.);
+  h_VBFjet1_Eta           = iFile->make<TH1D>("h_VBFjet1_Eta","h_VBFjet1_Eta",150,-5.,5.);
+  h_VBFjet1_Phi           = iFile->make<TH1D>("h_VBFjet1_Phi","h_VBFjet1_Phi",100,-3.5,3.5);
 
+  h_VBFjet2_Energy        = iFile->make<TH1D>("h_VBFjet2_Energy","h_VBFjet2_Energy",200,0.,1200.);
+  h_VBFjet2_Pt            = iFile->make<TH1D>("h_VBFjet2_Pt","h_VBFjet2_Pt",200,0.,600.);
+  h_VBFjet2_Eta           = iFile->make<TH1D>("h_VBFjet2_Eta","h_VBFjet2_Eta",150,-5.,5.);
+  h_VBFjet2_Phi           = iFile->make<TH1D>("h_VBFjet2_Phi","h_VBFjet2_Phi",100,-3.5,3.5);
+
+  h_VBFjet1_Energy_Final  = iFile->make<TH1D>("h_VBFjet1_Energy_Final","h_VBFjet1_Energy_Final",200,0.,1200.);
+  h_VBFjet1_Pt_Final      = iFile->make<TH1D>("h_VBFjet1_Pt_Final","h_VBFjet1_Pt_Final",200,0.,600.);
+  h_VBFjet1_Eta_Final     = iFile->make<TH1D>("h_VBFjet1_Eta_Final","h_VBFjet1_Eta_Final",150,-5.,5.);
+  h_VBFjet1_Phi_Final     = iFile->make<TH1D>("h_VBFjet1_Phi_Final","h_VBFjet1_Phi_Final",100,-3.5,3.5);
+
+  h_VBFjet2_Energy_Final  = iFile->make<TH1D>("h_VBFjet2_Energy_Final","h_VBFjet2_Energy_Final",200,0.,1200.);
+  h_VBFjet2_Pt_Final      = iFile->make<TH1D>("h_VBFjet2_Pt_Final","h_VBFjet2_Pt_Final",200,0.,600.);
+  h_VBFjet2_Eta_Final     = iFile->make<TH1D>("h_VBFjet2_Eta_Final","h_VBFjet2_Eta_Final",150,-5.,5.);
+  h_VBFjet2_Phi_Final     = iFile->make<TH1D>("h_VBFjet2_Phi_Final","h_VBFjet2_Phi_Final",100,-3.5,3.5);
+
+  h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",200,0.,1200.);
+  h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",150,-5.,5.);
+  
   if(triggerPaths_.at(0)=="ALL")
   {
      unsigned int maxSize = 1000;
@@ -229,11 +266,11 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
      {
          char  photonName[500];
          sprintf (photonName,"PhotonPt_efficiency_%d",iPath);
-         HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(photonName,photonName,20,0.,100.);
+         HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(photonName,photonName,40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
          char  metName[500];
          sprintf (metName,"MET_efficiency_%d",iPath);
-         HLT_MET_efficiency_tmp[iPath] = new TH1D(metName,metName,10,0.,200.);
+         HLT_MET_efficiency_tmp[iPath] = new TH1D(metName,metName,20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
      }
   }else if(triggerPaths_.at(0)!="ALL" && triggerPaths_.at(0)!="NONE")
@@ -246,15 +283,15 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
      HLT_MET_efficiency.resize(maxSize);
      for(unsigned int iPath=0; iPath<maxSize; iPath++) 
      {
-         HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,100.);
+         HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
-         HLT_MET_efficiency_tmp[iPath] = new TH1D(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),10,0.,200.);
+         HLT_MET_efficiency_tmp[iPath] = new TH1D(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
      }
   }
-  HLT_PhotonPt_denum = new TH1D("HLT_PhotonPt_denum","",20,0.,100.);
+  HLT_PhotonPt_denum = new TH1D("HLT_PhotonPt_denum","",40,0.,200.);
   HLT_PhotonPt_denum->Sumw2();
-  HLT_MET_denum = new TH1D("HLT_MET_denum","",10,0.,200.);
+  HLT_MET_denum = new TH1D("HLT_MET_denum","",20,0.,400.);
   HLT_MET_denum->Sumw2();
   
   nTot=0.;
@@ -267,8 +304,7 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   nTotSelected_step5=0.;
   nTotSelected_step6=0.;
   nTotSelected_step7=0.;
-  nTotSelected_step8=0.;
-
+  
   TFile* higgsPtFile = TFile::Open(higgsPtReweighting_.c_str()); 
   h_higgsPtReweighting = (TH1D*)higgsPtFile->Get("h_Higgs_pt_reweighting");
 }
@@ -342,44 +378,21 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
         maxPt = ipho->pt();
         selectedPhoton = phoIndex;
      }        
-  }  
+  } 
 
   edm::Ptr<flashgg::Photon> thePhoton = photons->ptrAt(selectedPhoton);
-  int n_triggers=0;
-  const edm::TriggerNames& trigNames = ev.triggerNames(*trigResults);   
-  if(triggerPaths_.at(0)=="NONE") n_triggers = 1;
-  else if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
-  {
-     for(unsigned iPath=0; iPath<triggerPaths_.size(); iPath++)
-     {
-         bool passTrig=getHLTResults(trigResults,trigNames,triggerPaths_.at(iPath));
-         if(passTrig==true)
-         {
-            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
-            n_triggers++;
-         }
-     }
-  }
-  else if(triggerPaths_.at(0)=="ALL")
-  {
-     if(HLT_pathsSize==0) HLT_pathsSize = trigResults->size();
-     n_triggers=(int)trigResults->size();
-     if(trigResults->size()>1000) HLT_Names.resize(trigResults->size());
-     for(unsigned iPath=0; iPath<trigResults->size(); iPath++)
-     {
-         if(HLT_Names.at(iPath)=="") HLT_Names.at(iPath) = string(trigNames.triggerName(iPath));
-         bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
-         if(passTrig==true)
-         {
-            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
-         }
-     }
-  }
-  //apply trigger selections
-  if(n_triggers<1) return;
-  nTotSelected_step1+=wPt;
+  double deltaPhiPhotonMet = deltaPhi(metPhiCorr(theMet),thePhoton->phi());
+
+  h_Pho_Energy_noCut->Fill(thePhoton->energy(),wPt);
+  h_Pho_Pt_noCut->Fill(thePhoton->pt(),wPt);
+  h_Pho_Eta_noCut->Fill(thePhoton->eta(),wPt);
+  h_Pho_Phi_noCut->Fill(thePhoton->phi(),wPt);
+
+  h_MET_Pt_noCut->Fill(theMet->getCorPt(),wPt);
+  h_MET_Phi_noCut->Fill(metPhiCorr(theMet),wPt);
+
+  h_dPhiMETPho_noCut->Fill(deltaPhiPhotonMet,wPt);
+  h_MtMETPho_noCut->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
 
   //apply photonID and select the best photon
   selectedPhoton=0;
@@ -412,85 +425,66 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
      }        
   }   
 
-  //apply preselection: photonID, photon pt and MET 
+  //Photon selections 
   if(nSelectedPhotons!=1) return;
-  nTotSelected_step2+=wPt;
+  nTotSelected_step1+=wPt;
   thePhoton = photons->ptrAt(selectedPhoton);
 
+  h_Pho_Energy->Fill(thePhoton->energy(),wPt);
+  h_Pho_Pt->Fill(thePhoton->pt(),wPt);
+  h_Pho_Eta->Fill(thePhoton->eta(),wPt);
+  h_Pho_Phi->Fill(thePhoton->phi(),wPt);
+
+  //metCut & deltaPhi(MET-Photon) 
   if(theMet->getCorPt()<metThres_) return; 
-  //deltaPhi(MET-Photon) 
-  //double deltaPhiPhotonMet = metPhiCorr(theMet)-thePhoton->phi();
-  double deltaPhiPhotonMet = deltaPhi(theMet->corPhi(),thePhoton->phi());
-  //if(fabs(deltaPhiPhotonMet)<dPhiPhotonMetThres_)  //skip if close
-  //   if(fabs(deltaPhiPhotonMet)-TMath::Pi()<dPhiPhotonMetThres_) //skip if close but on other side of phi=0
   if(fabs(deltaPhiPhotonMet)<dPhiPhotonMetThres_) return;
-  nTotSelected_step3+=wPt;
-
-  vector<edm::Ptr<flashgg::Jet> > gJets = goodJets(Jets,thePhoton,0);
- 
-  if(gJets.size()<2) return;
-  nTotSelected_step4+=wPt;
-
-  unsigned selectedJet1=-1;
-  unsigned selectedJet2=-1;
-
-  maxPt=0.;
-  int selectedJet=-1;
-  for(unsigned int jetIndex=0;jetIndex<gJets.size();jetIndex++) 
-  {
-      edm::Ptr<flashgg::Jet> theJet = gJets[jetIndex];
-      
-      if(theJet->pt()>maxPt)
-      {
-         maxPt = theJet->pt();
-         selectedJet = jetIndex;  
-      }   
-  }
-  selectedJet1=selectedJet;
-
-  maxPt=0.;
-  selectedJet=-1;
-  for(unsigned int jetIndex=0;jetIndex<gJets.size();jetIndex++) 
-  {
-      if(jetIndex==selectedJet1) continue;
-
-      edm::Ptr<flashgg::Jet> theJet = gJets[jetIndex];
-      
-      if(theJet->pt()>maxPt)
-      {
-         maxPt = theJet->pt();
-         selectedJet = jetIndex;  
-      }   
-  }
-  selectedJet2=selectedJet;
-
-  if((int)selectedJet1==-1 || (int)selectedJet2==-1) return;
-
-  edm::Ptr<flashgg::Jet> theJet1 = gJets[selectedJet1];
-  edm::Ptr<flashgg::Jet> theJet2 = gJets[selectedJet2];
-  float invMassJets = sqrt((theJet1->energy()+theJet2->energy())*(theJet1->energy()+theJet2->energy()) -
-                           (theJet1->px()+theJet2->px())*(theJet1->px()+theJet2->px()) -
-                           (theJet1->py()+theJet2->py())*(theJet1->py()+theJet2->py()) -
-                           (theJet1->pz()+theJet2->pz())*(theJet1->pz()+theJet2->pz()));
-
-  if(invMassJets<invMassJets_) return;
-  nTotSelected_step5+=wPt;
-  if(fabs(theJet1->eta()-theJet2->eta())<deltaEtaJets_) return;
-  nTotSelected_step6+=wPt;
+  nTotSelected_step2+=wPt;
 
   HLT_PhotonPt_denum->Fill(thePhoton->pt(),wPt);
   HLT_MET_denum->Fill(theMet->getCorPt(),wPt);
 
-  h_Pho_Energy_noCut->Fill(thePhoton->energy(),wPt);
-  h_Pho_Pt_noCut->Fill(thePhoton->pt(),wPt);
-  h_Pho_Eta_noCut->Fill(thePhoton->eta(),wPt);
-  h_Pho_Phi_noCut->Fill(thePhoton->phi(),wPt);
+  int n_triggers=0;
+  const edm::TriggerNames& trigNames = ev.triggerNames(*trigResults);   
+  if(triggerPaths_.at(0)=="NONE") n_triggers = 1;
+  else if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
+  {
+     for(unsigned iPath=0; iPath<triggerPaths_.size(); iPath++)
+     {
+         bool passTrig=getHLTResults(trigResults,trigNames,triggerPaths_.at(iPath));
+         if(passTrig==true)
+         {
+            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
+            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+            n_triggers++;
+         }
+     }
+  }
+  else if(triggerPaths_.at(0)=="ALL")
+  {
+     if(HLT_pathsSize==0) HLT_pathsSize = trigResults->size();
+     n_triggers=(int)trigResults->size();
+     if(trigResults->size()>1000) HLT_Names.resize(trigResults->size());
+     for(unsigned iPath=0; iPath<trigResults->size(); iPath++)
+     {
+         if(HLT_Names.at(iPath)=="") HLT_Names.at(iPath) = string(trigNames.triggerName(iPath));
+         bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
+         if(passTrig==true)
+         {
+            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
+            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+         }
+     }
+  } 
 
-  h_MET_Pt_noCut->Fill(theMet->getCorPt(),wPt);
-  h_MET_Phi_noCut->Fill(metPhiCorr(theMet),wPt);
+  //apply trigger selections
+  if(n_triggers<1) return;
+  nTotSelected_step3+=wPt;
 
-  h_dPhiMETPho_noCut->Fill(deltaPhiPhotonMet,wPt);
-  h_MtMETPho_noCut->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
+  h_MET_Pt->Fill(theMet->getCorPt(),wPt);
+  h_MET_Phi->Fill(metPhiCorr(theMet),wPt);
+
+  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wPt);
+  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
 
   //muon selections
   std::vector<edm::Ptr<flashgg::Muon> > goodMuons;
@@ -515,43 +509,85 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //no good muons and electrons
   if(goodMuons.size() != 0 || goodElectrons.size() != 0) return;
-  nTotSelected_step7+=wPt;
- 
-  h_Pho_Energy->Fill(thePhoton->energy(),wPt);
-  h_Pho_Pt->Fill(thePhoton->pt(),wPt);
-  h_Pho_Eta->Fill(thePhoton->eta(),wPt);
-  h_Pho_Phi->Fill(thePhoton->phi(),wPt);
+  nTotSelected_step4+=wPt;
 
-  h_MET_Pt->Fill(theMet->getCorPt(),wPt);
-  h_MET_Phi->Fill(metPhiCorr(theMet),wPt);
+  int iColl = 0;
 
-  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wPt);
-  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
-
-  //jet selections
-  h_nJets_noCut->Fill(Jets[0]->size(),wPt);
-  
-  for(unsigned int jetIndex = 0;jetIndex<gJets.size();jetIndex++) 
+  for(unsigned int jetIndex = 0;jetIndex<Jets[iColl]->size();jetIndex++) 
   {
-      edm::Ptr<flashgg::Jet> theJet = gJets[jetIndex];
+      edm::Ptr<flashgg::Jet> theJet = Jets[iColl]->ptrAt(jetIndex);
 
-      h_Jet_Energy->Fill(theJet->energy(),wPt);
-      h_Jet_Pt->Fill(theJet->pt(),wPt);
-      h_Jet_Eta->Fill(theJet->eta(),wPt);
-      h_Jet_Phi->Fill(theJet->phi(),wPt);
+      h_Jet_Energy_noCut->Fill(theJet->energy(),wPt);
+      h_Jet_Pt_noCut->Fill(theJet->pt(),wPt);
+      h_Jet_Eta_noCut->Fill(theJet->eta(),wPt);
+      h_Jet_Phi_noCut->Fill(theJet->phi(),wPt);
 
-      h_dPhiJetPho->Fill(deltaPhi(theJet->phi(),thePhoton->phi()),wPt);
-      h_dEtaJetPho->Fill(theJet->eta()-thePhoton->eta(),wPt);
-      h_dRJetPho->Fill(deltaR(theJet->eta(),theJet->phi(),thePhoton->eta(),thePhoton->phi()),wPt);
-     
+      h_dPhiJetPho_noCut->Fill(deltaPhi(theJet->phi(),thePhoton->phi()),wPt);
+      h_dEtaJetPho_noCut->Fill(theJet->eta()-thePhoton->eta(),wPt);
+      h_dRJetPho_noCut->Fill(deltaR(theJet->eta(),theJet->phi(),thePhoton->eta(),thePhoton->phi()),wPt);
+
+      h_nJets_noCut->Fill((int)Jets[iColl]->size(),wPt);
   }
-  h_nJets->Fill((int)gJets.size(),wPt);
 
-  vector<edm::Ptr<flashgg::Jet> > vbfjets = vbfJets(Jets,thePhoton,vtx,0);
-  //std::cout << "nVbfjets = " << vbfjets.size() << std::endl;
-  h_nVBFJets->Fill((int)vbfjets.size(),wPt);
+  vbfjets.clear();
+  vbfjets = vbfJets(Jets,thePhoton,vtx,0);
 
-  if(vbfjets.size() != 0) nTotSelected_step8+=wPt; 
+  for(unsigned int jetIndex=0;jetIndex<vbfjets.size();jetIndex++) 
+  {
+      h_Jet_Energy->Fill(vbfjets[jetIndex].energy(),wPt);
+      h_Jet_Pt->Fill(vbfjets[jetIndex].pt(),wPt);
+      h_Jet_Eta->Fill(vbfjets[jetIndex].eta(),wPt);
+      h_Jet_Phi->Fill(vbfjets[jetIndex].phi(),wPt);
+
+      h_dPhiJetPho->Fill(deltaPhi(vbfjets[jetIndex].phi(),thePhoton->phi()),wPt);
+      h_dEtaJetPho->Fill(vbfjets[jetIndex].eta()-thePhoton->eta(),wPt);
+      h_dRJetPho->Fill(deltaR(vbfjets[jetIndex].eta(),vbfjets[jetIndex].phi(),thePhoton->eta(),thePhoton->phi()),wPt);
+
+      h_nJets->Fill((int)vbfjets.size(),wPt);
+  }
+
+  if(vbfjets.size()<2) return;
+  nTotSelected_step5+=wPt;
+
+  reco::Candidate::LorentzVector sumJets = vbfjets[0] + vbfjets[1];
+  double invMassJets = sumJets.M();
+
+  h_VBFjet1_Energy->Fill(vbfjets[0].energy(),wPt);
+  h_VBFjet1_Pt->Fill(vbfjets[0].pt(),wPt);
+  h_VBFjet1_Eta->Fill(vbfjets[0].eta(),wPt);
+  h_VBFjet1_Phi->Fill(vbfjets[0].phi(),wPt);
+
+  h_VBFjet2_Energy->Fill(vbfjets[1].energy(),wPt);
+  h_VBFjet2_Pt->Fill(vbfjets[1].pt(),wPt);
+  h_VBFjet2_Eta->Fill(vbfjets[1].eta(),wPt);
+  h_VBFjet2_Phi->Fill(vbfjets[1].phi(),wPt);
+
+  h_VBFjets_invMass->Fill(invMassJets,wPt);
+  h_VBFjets_dEta->Fill(vbfjets[0].eta()-vbfjets[1].eta(),wPt);
+
+  if(invMassJets<invMassJets_) return;
+  nTotSelected_step6+=wPt;
+  if(fabs(vbfjets[0].eta()-vbfjets[1].eta())<deltaEtaJets_) return;
+  nTotSelected_step7+=wPt;
+
+  h_Pho_Energy_Final->Fill(thePhoton->energy(),wPt);
+  h_Pho_Pt_Final->Fill(thePhoton->pt(),wPt);
+  h_Pho_Eta_Final->Fill(thePhoton->eta(),wPt);
+  h_Pho_Phi_Final->Fill(thePhoton->phi(),wPt);
+  h_MET_Pt_Final->Fill(theMet->getCorPt(),wPt);
+  h_MET_Phi_Final->Fill(metPhiCorr(theMet),wPt);
+  h_dPhiMETPho_Final->Fill(deltaPhiPhotonMet,wPt);
+  h_MtMETPho_Final->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
+  h_VBFjet1_Energy_Final->Fill(vbfjets[0].energy(),wPt);
+  h_VBFjet1_Pt_Final->Fill(vbfjets[0].pt(),wPt);
+  h_VBFjet1_Eta_Final->Fill(vbfjets[0].eta(),wPt);
+  h_VBFjet1_Phi_Final->Fill(vbfjets[0].phi(),wPt);
+  h_VBFjet2_Energy_Final->Fill(vbfjets[1].energy(),wPt);
+  h_VBFjet2_Pt_Final->Fill(vbfjets[1].pt(),wPt);
+  h_VBFjet2_Eta_Final->Fill(vbfjets[1].eta(),wPt);
+  h_VBFjet2_Phi_Final->Fill(vbfjets[1].phi(),wPt);
+
+  vbfjets.clear();
  
 }
 
@@ -568,32 +604,48 @@ void FlashGXAnalysis::endJob()
    {
       for(unsigned int iPath=0; iPath<triggerPaths_.size(); iPath++) 
       {
-          HLT_PhotonPt_efficiency_tmp[iPath]->Divide(HLT_PhotonPt_denum);
-          HLT_MET_efficiency_tmp[iPath]->Divide(HLT_MET_denum);
-          if(isGoodTrigger(HLT_PhotonPt_efficiency_tmp[iPath],0.6) && isGoodTrigger(HLT_MET_efficiency_tmp[iPath],0.6))
+          TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+          eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+          eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+
+          TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+          eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+          eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+
+          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
           {
-             HLT_PhotonPt_efficiency[iPath] = iFile->make<TH1D>(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,100.);
-             saveTrigger(HLT_PhotonPt_efficiency_tmp[iPath],HLT_PhotonPt_efficiency[iPath]);
-             HLT_MET_efficiency[iPath] = iFile->make<TH1D>(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),10,0.,200.);
-             saveTrigger(HLT_MET_efficiency_tmp[iPath],HLT_MET_efficiency[iPath]);
+             cout << iPath << " - " << HLT_PhotonPt_efficiency_tmp[iPath]->GetName() << endl; 
+             HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
+             saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+             HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
+             saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
           }
+          delete eff_PhotonPt_tmp;
+          delete eff_MET_tmp;
       }
    }
    else if(triggerPaths_.at(0)=="ALL")
    {
       for(unsigned int iPath=0; iPath<HLT_pathsSize; iPath++) 
       {
-          HLT_PhotonPt_efficiency_tmp[iPath]->Divide(HLT_PhotonPt_denum);
-          HLT_MET_efficiency_tmp[iPath]->Divide(HLT_MET_denum);
-          if(isGoodTrigger(HLT_PhotonPt_efficiency_tmp[iPath],0.6) && isGoodTrigger(HLT_MET_efficiency_tmp[iPath],0.6))
-          {
-             if (HLT_Names.at(iPath).find("HLT")==std::string::npos) continue;
+          TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+          eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+          eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-             HLT_PhotonPt_efficiency[iPath] = iFile->make<TH1D>(std::string("PhotonPt_efficiency_"+HLT_Names.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+HLT_Names.at(iPath)).c_str(),20,0.,100.);
-             saveTrigger(HLT_PhotonPt_efficiency_tmp[iPath],HLT_PhotonPt_efficiency[iPath]);
-             HLT_MET_efficiency[iPath] = iFile->make<TH1D>(std::string("MET_efficiency_"+HLT_Names.at(iPath)).c_str(),std::string("MET_efficiency_"+HLT_Names.at(iPath)).c_str(),10,0.,200.);
-             saveTrigger(HLT_MET_efficiency_tmp[iPath],HLT_MET_efficiency[iPath]);
+          TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+          eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+          eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+
+          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
+          {
+             cout << iPath << " - " << HLT_PhotonPt_efficiency_tmp[iPath]->GetName() << endl; 
+             HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
+             saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+             HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
+             saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
           }
+          delete eff_PhotonPt_tmp;
+          delete eff_MET_tmp;
       }
    }
 
@@ -643,23 +695,16 @@ void FlashGXAnalysis::endJob()
    h_Efficiency->SetBinContent(8,eff); 
    h_Efficiency->SetBinError(8,eff_error);
    
-   eff=(double)nTotSelected_step8/(double)nTot;
-   eff_error=sqrt(eff*(1-eff)/(double)nTot);
-   h_numberOfEvents->SetBinContent(9,nTotSelected_step8); 
-   h_Efficiency->SetBinContent(9,eff); 
-   h_Efficiency->SetBinError(9,eff_error);
-   
 
    cout << "------------- Preselections & HLT paths -------------" << endl; 
    cout << "Events with 0 photons  : " << (double)nTotSelected_step0/(double)nTot_step0 << endl; 
-   cout << "HLT selections         : " << (double)nTotSelected_step1/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step1/(double)nTotSelected_step1 << endl; 
-   cout << "Photon selections      : " << (double)nTotSelected_step2/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step2/(double)nTotSelected_step1 << endl;    
-   cout << "MET selections         : " << (double)nTotSelected_step3/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step3/(double)nTotSelected_step1 << endl;    
-   cout << "Good jets selections   : " << (double)nTotSelected_step4/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step4/(double)nTotSelected_step1 << endl;
-   cout << "VBF invMass selection  : " << (double)nTotSelected_step5/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step5/(double)nTotSelected_step1 << endl;
-   cout << "VBF dEta selection     : " << (double)nTotSelected_step6/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step6/(double)nTotSelected_step1 << endl;
-   cout << "No good electrons/muons: " << (double)nTotSelected_step7/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step7/(double)nTotSelected_step1 << endl; 
-   cout << "VBF final selections   : " << (double)nTotSelected_step8/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step8/(double)nTotSelected_step1 << endl;  
+   cout << "Photon selections      : " << (double)nTotSelected_step1/(double)nTot << endl;  
+   cout << "MET selections         : " << (double)nTotSelected_step2/(double)nTot << endl; 
+   cout << "HLT selections         : " << (double)nTotSelected_step3/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step3/(double)nTotSelected_step3 << endl; 
+   cout << "No good electrons/muons: " << (double)nTotSelected_step4/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step4/(double)nTotSelected_step3 << endl;    
+   cout << "VBF jets selections    : " << (double)nTotSelected_step5/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step5/(double)nTotSelected_step3 << endl;
+   cout << "VBF invMass selection  : " << (double)nTotSelected_step6/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step6/(double)nTotSelected_step3 << endl;
+   cout << "VBF dEta selection     : " << (double)nTotSelected_step7/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step7/(double)nTotSelected_step3 << endl;
    
 }
 
@@ -704,19 +749,44 @@ bool FlashGXAnalysis::getHLTResults(edm::Handle<edm::TriggerResults> trigResults
   return false;
 }
 
-bool FlashGXAnalysis::isGoodTrigger(TH1D* efficiency, double threshold)
+TH1D* FlashGXAnalysis::fixBins(TH1D* h)
+{
+  TH1D* h_tmp = (TH1D*)h->Clone();
+  for(int bin=1; bin<=h->GetNbinsX();bin++)
+  {
+      if(h->GetBinContent(bin)!= 0.) h_tmp->SetBinContent(bin,h->GetBinContent(bin)); 
+      else h_tmp->SetBinContent(bin,1.);  
+  }    
+  return h_tmp;
+}
+
+bool FlashGXAnalysis::isGoodTrigger(TGraphAsymmErrors* efficiency, double threshold)
 {
   bool isGood = false;
-  for(int iBin=1; iBin<=efficiency->GetNbinsX(); iBin++)
-      if(efficiency->GetBinContent(iBin)>=threshold) isGood = true;
+  double x=0.;
+  double y=0.;
+  for(int ip=0; ip<efficiency->GetN(); ip++)
+  {
+      efficiency->GetPoint(ip,x,y);
+      if(y>=threshold) isGood = true;
+  }
 
   return isGood; 
 }
 
-void FlashGXAnalysis::saveTrigger(TH1D* efficiency_tmp, TH1D* efficiency)
+void FlashGXAnalysis::saveTrigger(TGraphAsymmErrors* efficiency_tmp, TGraphAsymmErrors* efficiency)
 {
-  for(int iBin=1; iBin<=efficiency_tmp->GetNbinsX(); iBin++)
-      efficiency->SetBinContent(iBin,efficiency_tmp->GetBinContent(iBin));
+  double x=0.;
+  double y=0.;
+  for(int ip=0; ip<efficiency_tmp->GetN(); ip++)
+  {
+      efficiency_tmp->GetPoint(ip,x,y);
+      efficiency->SetPoint(ip,x,y);
+      double y_errH = efficiency_tmp->GetErrorYhigh(ip); 
+      efficiency->SetPointEYhigh(ip,y_errH);
+      double y_errL = efficiency_tmp->GetErrorYlow(ip); 
+      efficiency->SetPointEYlow(ip,y_errL);
+  }
 }
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool FlashGXAnalysis::isGoodPhotonHgg(edm::Ptr<flashgg::Photon> ipho, edm::Ptr<reco::Vertex> vtx, double rho)
@@ -835,9 +905,9 @@ double FlashGXAnalysis::metPhiCorr(edm::Ptr<flashgg::Met> met)
 
    newPhi = atan(newPy/newPx);
    if(newPx<0. && newPy<0.)
-      newPhi = -TMath::Pi() + newPhi;
+      newPhi = newPhi - TMath::Pi();
    else if(newPx<0. && newPy>=0.)
-      newPhi = TMath::Pi() + newPhi;
+      newPhi = newPhi + TMath::Pi();
 
    return newPhi;
 }
@@ -853,7 +923,7 @@ double FlashGXAnalysis::computeMtMETPhoton(edm::Ptr<flashgg::Photon> ipho, edm::
      double newPy=oldPy - (metPhiCorr0_[1]+metPhiCorr1_[1]*met->corSumEt());
 
      TLorentzVector* pho = new TLorentzVector();
-     pho->SetPtEtaPhiE(ipho->pt(),ipho->eta(),ipho->phi(),ipho->energy());
+     pho->SetPtEtaPhiE(ipho->pt(),ipho->superCluster()->eta(),ipho->superCluster()->phi(),ipho->energy());
 
      double m1 = 0.;
      double m2 = 0.;
@@ -864,9 +934,9 @@ double FlashGXAnalysis::computeMtMETPhoton(edm::Ptr<flashgg::Photon> ipho, edm::
      return Mt;
 }
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-vector<edm::Ptr<flashgg::Jet> > FlashGXAnalysis::goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl)
+std::vector<reco::Candidate::LorentzVector> FlashGXAnalysis::goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl)
 {
-   vector<edm::Ptr<flashgg::Jet> > goodJets;
+   std::vector<reco::Candidate::LorentzVector> goodJets;
 
    for(unsigned int jetIndex = 0;jetIndex<Jets[iColl]->size();jetIndex++) 
    {
@@ -878,20 +948,14 @@ vector<edm::Ptr<flashgg::Jet> > FlashGXAnalysis::goodJets(JetCollectionVector Je
       if(dRPhoJet<drJetPhoCut_) { continue; }
       if(jet->pt()<jetPtThres_) { continue; }
 
-      goodJets.push_back(jet);
+      goodJets.push_back(jet->p4());
    }
    return goodJets;
 }
 
-vector<edm::Ptr<flashgg::Jet> > FlashGXAnalysis::vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl)
+std::vector<reco::Candidate::LorentzVector> FlashGXAnalysis::vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl)
 {
-   std::vector<edm::Ptr<flashgg::Jet> > vbfJets;
-
-   std::vector<std::pair<double,double> > eta_cuts_(4);
-   eta_cuts_[0] = std::make_pair(0,   2.50);
-   eta_cuts_[1] = std::make_pair(2.50,2.75);
-   eta_cuts_[2] = std::make_pair(2.75,3.00);
-   eta_cuts_[3] = std::make_pair(3.00,10.);
+   std::vector<reco::Candidate::LorentzVector> vbfJets;
    
    std::pair <int, int>  dijet_indices(-1,-1);
    std::pair <float, float> dijet_pts(-1.,-1.);
@@ -907,34 +971,34 @@ vector<edm::Ptr<flashgg::Jet> > FlashGXAnalysis::vbfJets(JetCollectionVector Jet
    {
       edm::Ptr<flashgg::Jet> jet = Jets[iColl]->ptrAt(jetIndex);
 
+      if(fabs(jet->pt())<jetPtThres_) continue; 
+      if(fabs(jet->eta())>jetEtaThres_) continue; 
+      if(fabs(jet->eta())>2.5 && jet->rms()>rmsforwardCut_) continue;  
+      if(deltaR(jet->eta(),jet->phi(),pho->superCluster()->eta(),pho->superCluster()->phi())<drJetPhoCut_) continue; 
+     
       if(usePuJetID_ && !jet->passesPuJetId(vtx)){ continue;}
       if(useJetID_)
       {
           if(jetIDLevel_ == "Loose" && !jet->passesJetID(flashgg::Loose )) continue;
           if(jetIDLevel_ == "Tight" && !jet->passesJetID(flashgg::Tight )) continue;
       }
-  
-      if(fabs(jet->eta())>2.5 && jet->rms()>rmsforwardCut_){ continue; } 
-
                 
-      if((!pujid_wp_pt_bin_1_.empty()) && (!pujid_wp_pt_bin_2_.empty()) && (!pujid_wp_pt_bin_3_.empty()))
+      if((!pujid_wp_pt_bin_1_.empty()) && (!pujid_wp_pt_bin_2_.empty()) && (!pujid_wp_pt_bin_3_.empty()) && (!pujid_wp_pt_bin_4_.empty()))
       {
           bool pass=false;
-          for(UInt_t eta_bin=0; eta_bin < pujid_wp_pt_bin_1_.size(); eta_bin++)
+          for(unsigned eta_bin=0; eta_bin<pujidEtaBins_.size()-1; eta_bin++)
           {
-              if(fabs(jet->eta())> eta_cuts_[eta_bin].first && fabs(jet->eta())<=eta_cuts_[eta_bin].second)
+              if(fabs(jet->eta())>pujidEtaBins_[eta_bin] && fabs(jet->eta())<=pujidEtaBins_[eta_bin+1])
               {
-                 if(jet->pt()>20. && jet->pt()<=30.  && jet->puJetIdMVA()>pujid_wp_pt_bin_1_[eta_bin]) pass=true;                                
-                 if(jet->pt()>30. && jet->pt()<=50.  && jet->puJetIdMVA()>pujid_wp_pt_bin_2_[eta_bin]) pass=true;
-                 if(jet->pt()>50. && jet->pt()<=100. && jet->puJetIdMVA()>pujid_wp_pt_bin_3_[eta_bin]) pass=true;
-                 if(jet->pt()>100.) pass = true;          
+                 if(jet->pt()>0.  && jet->pt()<=10.  && jet->puJetIdMVA()>pujid_wp_pt_bin_1_[eta_bin]) pass=true; 
+                 if(jet->pt()>10. && jet->pt()<=20.  && jet->puJetIdMVA()>pujid_wp_pt_bin_2_[eta_bin]) pass=true;                                
+                 if(jet->pt()>20. && jet->pt()<=30.  && jet->puJetIdMVA()>pujid_wp_pt_bin_3_[eta_bin]) pass=true;
+                 if(jet->pt()>30. && jet->pt()<=50.  && jet->puJetIdMVA()>pujid_wp_pt_bin_4_[eta_bin]) pass=true;
+                 if(jet->pt()>50.) pass=true;          
               }
           }                   
           if (!pass) continue;
       }
-
-      if(fabs(jet->eta())> 4.7) { continue; }
-      if(deltaR(jet->eta(),pho->eta(),jet->phi(),pho->phi())<drJetPhoVBFCut_) { continue; }
 
       if(jet->pt()>dijet_pts.first)
       {
@@ -969,26 +1033,67 @@ vector<edm::Ptr<flashgg::Jet> > FlashGXAnalysis::vbfJets(JetCollectionVector Jet
    else if(n_jets_count == 1)
    {
       vbfJets.resize(1);
-      if(dijet_indices.first != -1 && dijet_indices.second == -1) vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.first));
-      if(dijet_indices.first == -1 && dijet_indices.second == -1) vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.second));
+      if(dijet_indices.first != -1 && dijet_indices.second == -1) vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4();
+      if(dijet_indices.first == -1 && dijet_indices.second == -1) vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.second)->p4();
    }  
    else if(n_jets_count == 2 && hasValidVBFDiJet)
    {
       vbfJets.resize(2);
-      vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.first));
-      vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.second));
+      vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4();
+      vbfJets[1]=Jets[iColl]->ptrAt(dijet_indices.second)->p4();
    }  
    else if(n_jets_count == 3 && hasValidVBFTriJet)
    {
-      vbfJets.resize(3);
-      vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.first));
-      vbfJets.push_back(Jets[iColl]->ptrAt(jet_3_index));
-      vbfJets.push_back(Jets[iColl]->ptrAt(dijet_indices.second));
+      double dR_13 = deltaR(Jets[iColl]->ptrAt(dijet_indices.first)->eta(),Jets[iColl]->ptrAt(dijet_indices.first)->phi(),Jets[iColl]->ptrAt(jet_3_index)->eta(),Jets[iColl]->ptrAt(jet_3_index)->phi());
+      double dR_23 = deltaR(Jets[iColl]->ptrAt(dijet_indices.second)->eta(),Jets[iColl]->ptrAt(dijet_indices.second)->phi(),Jets[iColl]->ptrAt(jet_3_index)->eta(),Jets[iColl]->ptrAt(jet_3_index)->phi());
+      
+      int indexToMergeWithJ3=-1;
+      if(dR_13<dR_23) 
+      {
+         indexToMergeWithJ3 = dR_13<thirdJetDRCut_ ? 0 : -1;
+      }else{
+         indexToMergeWithJ3 = dR_23<thirdJetDRCut_ ? 1 : -1;
+      }
+
+      if(dR_13>thirdJetDRCut_ && dR_23>thirdJetDRCut_){
+         hasValidVBFTriJet = 0; 
+      }
+      
+      if(indexToMergeWithJ3==-1)
+      {
+         vbfJets.resize(3);
+         vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4();
+         vbfJets[1]=Jets[iColl]->ptrAt(dijet_indices.second)->p4();
+         vbfJets[2]=Jets[iColl]->ptrAt(jet_3_index)->p4();
+      }
+      else if(indexToMergeWithJ3!=-1)
+      {
+         if(!merge3rdJet_)
+         {
+            vbfJets.resize(3);
+            vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4();
+            vbfJets[1]=Jets[iColl]->ptrAt(dijet_indices.second)->p4();
+            vbfJets[2]=Jets[iColl]->ptrAt(jet_3_index)->p4();
+         }
+         else{
+            if(indexToMergeWithJ3==0) 
+            {
+               vbfJets.resize(2);
+               vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4() + Jets[iColl]->ptrAt(jet_3_index)->p4();
+               vbfJets[1]=Jets[iColl]->ptrAt(dijet_indices.second)->p4();     
+            }
+            else if(indexToMergeWithJ3==1)
+            {
+               vbfJets.resize(2);
+               vbfJets[0]=Jets[iColl]->ptrAt(dijet_indices.first)->p4();
+               vbfJets[1]=Jets[iColl]->ptrAt(dijet_indices.second)->p4() + Jets[iColl]->ptrAt(jet_3_index)->p4();         
+            }
+         } 
+      }
    }  
 
    return vbfJets;
 }
-
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #include "FWCore/PluginManager/interface/ModuleDef.h"

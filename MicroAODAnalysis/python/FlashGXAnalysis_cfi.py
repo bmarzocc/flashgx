@@ -43,16 +43,16 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
                                                     "HLT_Photon90_R9Id90_HE10_Iso40_EBOnly_PFMET40",
                                                     "HLT_Photon90_R9Id90_HE10_Iso40_EBOnly_VBF",
                                                     "HLT_Photon120_R9Id90_HE10_Iso40_EBOnly_PFMET40",
-                                                    "HLT_Photon120_R9Id90_HE10_Iso40_EBOnly_VBF",
-                                                    "HLT_Photon22",
-                                                    "HLT_Photon30",
-                                                    "HLT_Photon36",
-                                                    "HLT_Photon50",
-                                                    "HLT_Photon75",
-                                                    "HLT_Photon90",
-                                                    "HLT_Photon120"
-                                                    "HLT_Photon175",
-                                                    "HLT_Photon165_HE10"
+                                                    "HLT_Photon120_R9Id90_HE10_Iso40_EBOnly_VBF"
+                                                   #"HLT_Photon22",
+                                                   #"HLT_Photon30",
+                                                   #"HLT_Photon36",
+                                                   #"HLT_Photon50",
+                                                   #"HLT_Photon75",
+                                                   #"HLT_Photon90",
+                                                   #"HLT_Photon120",
+                                                   #"HLT_Photon175",
+                                                   #"HLT_Photon165_HE10"
                                                    ), 
 
     photonPtThres                     = cms.double(20.),
@@ -164,12 +164,14 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
 
     #MC metPhi corrections and selections
     #metPhiCorr0                    = cms.vdouble(-3.17373,0.480606), #x,y
-    #metPhiCorr1                    = cms.vdouble(-0.024752,0.0297115), #x,y
+    #metPhiCorr1                    = cms.vdouble(-0.024752,0.0297115), #x,y 
+ 
+    #No MET-phi corrections   
     metPhiCorr0                    = cms.vdouble(0.,0.), #x,y
     metPhiCorr1                    = cms.vdouble(0.,0.), #x,y
 
-    metThres                       = cms.double(45.00),
-    dPhiPhotonMetThres             = cms.double(2.10),
+    metThres                       = cms.double(40.00),
+    dPhiPhotonMetThres             = cms.double(0.),
 
     #electrons and muons selection
     useStdMuonID                   = cms.bool(False),
@@ -184,25 +186,33 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     impactParam                    = cms.vdouble(0.0261,0.41,0.118,0.822), #transEB, longEB, transEE, longEE
     useElectronMVARecipe           = cms.bool(True),
     useElectronLooseID             = cms.bool(True),
-    
-    #jets selections
+
+    #vbfjets selections
     inputTagJets                   = UnpackedJetCollectionVInputTag,
     jetPtThres                     = cms.double(20.),
-    jetEtaThres                    = cms.double(99.),
-    drJetPhoCut                    = cms.double(1.5),
-    deltaEtaJets                   = cms.double(3.),
-    invMassJets                    = cms.double(400.),
-    
-    #vbfjets selections
-    usePuJetID                     = cms.bool(False),
+    jetEtaThres                    = cms.double(4.7),
+    drJetPhoCut                    = cms.double(0.4),
+    usePuJetID                     = cms.bool(True),
     useJetID                       = cms.bool(True),
-    merge3rdJet                    = cms.bool(False),
-    thirdJetDRCut                  = cms.double(1.8),
-    jetIDLevel                     = cms.string("Tight"),
-    # changes loose to another working point, or comment if you want to disable pujid
-    pujidWpPtBin1                  = cms.vdouble([0.69, -0.35, -0.26, -0.21]), # cms.vdouble(pujid.loose[0]),
-    pujidWpPtBin2                  = cms.vdouble([0.86, -0.1 , -0.05, -0.01]), # cms.vdouble(pujid.loose[1]),
-    pujidWpPtBin3                  = cms.vdouble([0.95,  0.28,  0.31,  0.28]), # cms.vdouble(pujid.loose[2]), 
+    jetIDLevel                     = cms.string("Loose"),
+    merge3rdJet                    = cms.bool(True),
+    #merge3rdJet                    = cms.bool(False),
+    thirdJetDRCut                  = cms.double(0.8),
+    pujidEtaBins                   = cms.vdouble(0.00,2.50,2.75,3.00,5.00),  
+    #pujidWpPtBin1                  = cms.vdouble(0.69, -0.35, -0.26, -0.21), # 80X tight
+    #pujidWpPtBin2                  = cms.vdouble(0.69, -0.35, -0.26, -0.21), # 80X tight
+    #pujidWpPtBin3                  = cms.vdouble(0.69, -0.35, -0.26, -0.21), # 80X tight
+    #pujidWpPtBin4                  = cms.vdouble(0.86, -0.10, -0.05, -0.01), # 80X tight
+    pujidWpPtBin1                  = cms.vdouble(0.18, -0.55, -0.42, -0.36), # 80X medium
+    pujidWpPtBin2                  = cms.vdouble(0.18, -0.55, -0.42, -0.36), # 80X medium
+    pujidWpPtBin3                  = cms.vdouble(0.18, -0.55, -0.42, -0.36), # 80X medium
+    pujidWpPtBin4                  = cms.vdouble(0.61, -0.35, -0.23, -0.17), # 80X medium
+    #pujidWpPtBin1                  = cms.vdouble(-0.97, -0.68, -0.53, -0.47), # 80X loose
+    #pujidWpPtBin2                  = cms.vdouble(-0.97, -0.68, -0.53, -0.47), # 80X loose
+    #pujidWpPtBin3                  = cms.vdouble(-0.97, -0.68, -0.53, -0.47), # 80X loose
+    #pujidWpPtBin4                  = cms.vdouble(-0.89, -0.52, -0.38, -0.30), # 80X loose
     rmsforwardCut                  = cms.double(3.0), # default was 0.03 , running on loose pujid
-    drJetPhoVBFCut                 = cms.double(0.4), # Keep the same value for now, should be set later to 0.4
+    
+    deltaEtaJets                   = cms.double(1.),
+    invMassJets                    = cms.double(300.),
 )
