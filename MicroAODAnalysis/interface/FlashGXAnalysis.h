@@ -270,10 +270,14 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       
       unsigned int HLT_pathsSize = 0;
       std::vector<std::string> HLT_Names; 
-      std::vector<TH1D*> HLT_PhotonPt_efficiency_tmp; 
+      std::vector<TH1D*> HLT_PhotonPt_efficiency_tmp;
+      TH1D* HLT_PhotonPt_efficiency_AllOR_tmp; 
       std::vector<TH1D*> HLT_MET_efficiency_tmp; 
+      TH1D* HLT_MET_efficiency_AllOR_tmp; 
       std::vector<TGraphAsymmErrors*> HLT_PhotonPt_efficiency; 
       std::vector<TGraphAsymmErrors*> HLT_MET_efficiency; 
+      TGraphAsymmErrors* HLT_PhotonPt_efficiency_AllOR; 
+      TGraphAsymmErrors* HLT_MET_efficiency_AllOR; 
       TH1D* HLT_PhotonPt_denum;
       TH1D* HLT_MET_denum;
 

@@ -214,45 +214,45 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   h_MtMETPho_Final        = iFile->make<TH1D>("h_MtMETPho_Final","h_MtMETPho_Final",200,0.,400.);
 
   h_nJets_noCut           = iFile->make<TH1D>("h_nJets_noCut","h_nJets_noCut",8,-0.5,7.5);
-  h_Jet_Energy_noCut      = iFile->make<TH1D>("h_Jet_Energy_noCut","h_Jet_Energy_noCut",100,0.,600.);
+  h_Jet_Energy_noCut      = iFile->make<TH1D>("h_Jet_Energy_noCut","h_Jet_Energy_noCut",200,0.,1500.);
   h_Jet_Pt_noCut          = iFile->make<TH1D>("h_Jet_Pt_noCut","h_Jet_Pt_noCut",100,0.,300.);
   h_Jet_Eta_noCut         = iFile->make<TH1D>("h_Jet_Eta_noCut","h_Jet_Eta_noCut",150,-5.,5.);
   h_Jet_Phi_noCut         = iFile->make<TH1D>("h_Jet_Phi_noCut","h_Jet_Phi_noCut",100,-3.5,3.5);
   h_dPhiJetPho_noCut      = iFile->make<TH1D>("h_dPhiJetPho_noCut","h_dPhiJetPho_noCut",100,-3.5,3.5);
-  h_dEtaJetPho_noCut      = iFile->make<TH1D>("h_dEtaJetPho_noCut","h_dEtaJetPho_noCut",100,-3.5,3.5);
+  h_dEtaJetPho_noCut      = iFile->make<TH1D>("h_dEtaJetPho_noCut","h_dEtaJetPho_noCut",100,-5,5);
   h_dRJetPho_noCut        = iFile->make<TH1D>("h_dRJetPho_noCut","h_dRJetPho_noCut",100,0.,6.);
 
   h_nJets                 = iFile->make<TH1D>("h_nJets","h_nJets",8,-0.5,7.5);
-  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",200,0.,1200.);
+  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",200,0.,1500.);
   h_Jet_Pt                = iFile->make<TH1D>("h_Jet_Pt","h_Jet_Pt",100,0.,300.);
   h_Jet_Eta               = iFile->make<TH1D>("h_Jet_Eta","h_Jet_Eta",150,-5.,5.);
   h_Jet_Phi               = iFile->make<TH1D>("h_Jet_Phi","h_Jet_Phi",100,-3.5,3.5);
   h_dPhiJetPho            = iFile->make<TH1D>("h_dPhiJetPho","h_dPhiJetPho",100,-3.5,3.5);
-  h_dEtaJetPho            = iFile->make<TH1D>("h_dEtaJetPho","h_dEtaJetPho",100,-3.5,3.5);
+  h_dEtaJetPho            = iFile->make<TH1D>("h_dEtaJetPho","h_dEtaJetPho",100,-5,5);
   h_dRJetPho              = iFile->make<TH1D>("h_dRJetPho","h_dRJetPho",100,0.,6.);
 
-  h_VBFjet1_Energy        = iFile->make<TH1D>("h_VBFjet1_Energy","h_VBFjet1_Energy",200,0.,1200.);
+  h_VBFjet1_Energy        = iFile->make<TH1D>("h_VBFjet1_Energy","h_VBFjet1_Energy",200,0.,1500.);
   h_VBFjet1_Pt            = iFile->make<TH1D>("h_VBFjet1_Pt","h_VBFjet1_Pt",200,0.,600.);
   h_VBFjet1_Eta           = iFile->make<TH1D>("h_VBFjet1_Eta","h_VBFjet1_Eta",150,-5.,5.);
   h_VBFjet1_Phi           = iFile->make<TH1D>("h_VBFjet1_Phi","h_VBFjet1_Phi",100,-3.5,3.5);
 
-  h_VBFjet2_Energy        = iFile->make<TH1D>("h_VBFjet2_Energy","h_VBFjet2_Energy",200,0.,1200.);
+  h_VBFjet2_Energy        = iFile->make<TH1D>("h_VBFjet2_Energy","h_VBFjet2_Energy",200,0.,1500.);
   h_VBFjet2_Pt            = iFile->make<TH1D>("h_VBFjet2_Pt","h_VBFjet2_Pt",200,0.,600.);
   h_VBFjet2_Eta           = iFile->make<TH1D>("h_VBFjet2_Eta","h_VBFjet2_Eta",150,-5.,5.);
   h_VBFjet2_Phi           = iFile->make<TH1D>("h_VBFjet2_Phi","h_VBFjet2_Phi",100,-3.5,3.5);
 
-  h_VBFjet1_Energy_Final  = iFile->make<TH1D>("h_VBFjet1_Energy_Final","h_VBFjet1_Energy_Final",200,0.,1200.);
+  h_VBFjet1_Energy_Final  = iFile->make<TH1D>("h_VBFjet1_Energy_Final","h_VBFjet1_Energy_Final",200,0.,1500.);
   h_VBFjet1_Pt_Final      = iFile->make<TH1D>("h_VBFjet1_Pt_Final","h_VBFjet1_Pt_Final",200,0.,600.);
   h_VBFjet1_Eta_Final     = iFile->make<TH1D>("h_VBFjet1_Eta_Final","h_VBFjet1_Eta_Final",150,-5.,5.);
   h_VBFjet1_Phi_Final     = iFile->make<TH1D>("h_VBFjet1_Phi_Final","h_VBFjet1_Phi_Final",100,-3.5,3.5);
 
-  h_VBFjet2_Energy_Final  = iFile->make<TH1D>("h_VBFjet2_Energy_Final","h_VBFjet2_Energy_Final",200,0.,1200.);
+  h_VBFjet2_Energy_Final  = iFile->make<TH1D>("h_VBFjet2_Energy_Final","h_VBFjet2_Energy_Final",200,0.,1500.);
   h_VBFjet2_Pt_Final      = iFile->make<TH1D>("h_VBFjet2_Pt_Final","h_VBFjet2_Pt_Final",200,0.,600.);
   h_VBFjet2_Eta_Final     = iFile->make<TH1D>("h_VBFjet2_Eta_Final","h_VBFjet2_Eta_Final",150,-5.,5.);
   h_VBFjet2_Phi_Final     = iFile->make<TH1D>("h_VBFjet2_Phi_Final","h_VBFjet2_Phi_Final",100,-3.5,3.5);
 
-  h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",200,0.,1200.);
-  h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",150,-5.,5.);
+  h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",200,0.,1500.);
+  h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",150,-7.,7.);
   
   if(triggerPaths_.at(0)=="ALL")
   {
@@ -288,6 +288,10 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
          HLT_MET_efficiency_tmp[iPath] = new TH1D(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
      }
+     HLT_PhotonPt_efficiency_AllOR_tmp = new TH1D("HLT_PhotonPt_efficiency_AllOR_tmp","HLT_PhotonPt_efficiency_AllOR_tmp",40,0.,200.);
+     HLT_MET_efficiency_AllOR_tmp = new TH1D("HLT_MET_efficiency_AllOR_tmp","HLT_MET_efficiency_AllOR_tmp",20,0.,400.);
+     HLT_PhotonPt_efficiency_AllOR_tmp->Sumw2();
+     HLT_MET_efficiency_AllOR_tmp->Sumw2();
   }
   HLT_PhotonPt_denum = new TH1D("HLT_PhotonPt_denum","",40,0.,200.);
   HLT_PhotonPt_denum->Sumw2();
@@ -404,17 +408,17 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
      
      if(applyCuBasedPhotonID_)
      {
-        if(isGoodPhotonCutBased(ipho,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho)) nSelectedPhotons++;  
+        if(isGoodPhotonCutBased(ipho,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
         else continue;
      }
      else if(applyMVAPhotonID_)
      {
-        if(isGoodPhotonMVA(ipho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho)) nSelectedPhotons++;  
+        if(isGoodPhotonMVA(ipho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
         else continue;
      }
      else if(applyHggPhotonID_)
      {
-        if(isGoodPhotonHgg(ipho,vtx,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho)) nSelectedPhotons++;  
+        if(isGoodPhotonHgg(ipho,vtx,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
         else continue;
      }
    
@@ -443,6 +447,7 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   HLT_PhotonPt_denum->Fill(thePhoton->pt(),wPt);
   HLT_MET_denum->Fill(theMet->getCorPt(),wPt);
 
+  bool passOR=false;
   int n_triggers=0;
   const edm::TriggerNames& trigNames = ev.triggerNames(*trigResults);   
   if(triggerPaths_.at(0)=="NONE") n_triggers = 1;
@@ -453,10 +458,16 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
          bool passTrig=getHLTResults(trigResults,trigNames,triggerPaths_.at(iPath));
          if(passTrig==true)
          {
+            passOR=true;
             HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
             HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
             n_triggers++;
          }
+     }
+     if(passOR)
+     {
+        HLT_MET_efficiency_AllOR_tmp->Fill(theMet->getCorPt(),wPt); 
+        HLT_PhotonPt_efficiency_AllOR_tmp->Fill(thePhoton->pt(),wPt); 
      }
   }
   else if(triggerPaths_.at(0)=="ALL")
@@ -602,6 +613,18 @@ void FlashGXAnalysis::endJob()
 
    if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
    {
+      TGraphAsymmErrors* eff_PhotonPt_AllOR_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_AllOR_tmp,fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+      eff_PhotonPt_AllOR_tmp->SetName("PhotonPt_efficiency_AllOR");
+      eff_PhotonPt_AllOR_tmp->SetTitle("PhotonPt_efficiency_AllOR");
+      HLT_PhotonPt_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_tmp);
+      saveTrigger(eff_PhotonPt_AllOR_tmp,HLT_PhotonPt_efficiency_AllOR);
+
+      TGraphAsymmErrors* eff_MET_AllOR_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_tmp,fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+      eff_MET_AllOR_tmp->SetName("MET_efficiency_AllOR");
+      eff_MET_AllOR_tmp->SetTitle("MET_efficiency_AllOR");
+      HLT_MET_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_tmp);
+      saveTrigger(eff_MET_AllOR_tmp,HLT_MET_efficiency_AllOR);
+
       for(unsigned int iPath=0; iPath<triggerPaths_.size(); iPath++) 
       {
           TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
@@ -614,7 +637,6 @@ void FlashGXAnalysis::endJob()
 
           if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
           {
-             cout << iPath << " - " << HLT_PhotonPt_efficiency_tmp[iPath]->GetName() << endl; 
              HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
              saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
              HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
