@@ -259,44 +259,86 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
      unsigned int maxSize = 1000;
      HLT_Names.resize(maxSize);
      HLT_PhotonPt_efficiency_tmp.resize(maxSize);
-     HLT_MET_efficiency_tmp.resize(maxSize);
      HLT_PhotonPt_efficiency.resize(maxSize);
+     HLT_PhotonPt_efficiency_VBF_tmp.resize(maxSize);
+     HLT_PhotonPt_efficiency_VBF.resize(maxSize);
+     HLT_MET_efficiency_tmp.resize(maxSize);
      HLT_MET_efficiency.resize(maxSize);
+     HLT_MET_efficiency_VBF_tmp.resize(maxSize);
+     HLT_MET_efficiency_VBF.resize(maxSize);
+     HLT_Mjj_efficiency_VBF_tmp.resize(maxSize);
+     HLT_Mjj_efficiency_VBF.resize(maxSize);
      for(unsigned int iPath=0; iPath<maxSize; iPath++) 
      {
          char  photonName[500];
          sprintf (photonName,"PhotonPt_efficiency_%d",iPath);
          HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(photonName,photonName,40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
+         char  photonName_VBF[500];
+         sprintf (photonName_VBF,"PhotonPt_efficiency_%d_VBF",iPath);
+         HLT_PhotonPt_efficiency_VBF_tmp[iPath] = new TH1D(photonName_VBF,photonName_VBF,40,0.,200.);
+         HLT_PhotonPt_efficiency_VBF_tmp[iPath]->Sumw2();
          char  metName[500];
          sprintf (metName,"MET_efficiency_%d",iPath);
          HLT_MET_efficiency_tmp[iPath] = new TH1D(metName,metName,20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
+         char  metName_VBF[500];
+         sprintf (metName_VBF,"MET_efficiency_%d_VBF",iPath);
+         HLT_MET_efficiency_VBF_tmp[iPath] = new TH1D(metName_VBF,metName_VBF,20,0.,400.);
+         HLT_MET_efficiency_VBF_tmp[iPath]->Sumw2();
+         char  mjjName_VBF[500];
+         sprintf (mjjName_VBF,"Mjj_efficiency_%d_VBF",iPath);
+         HLT_Mjj_efficiency_VBF_tmp[iPath] = new TH1D(mjjName_VBF,mjjName_VBF,100,0.,2000.);
+         HLT_Mjj_efficiency_VBF_tmp[iPath]->Sumw2();
      }
   }else if(triggerPaths_.at(0)!="ALL" && triggerPaths_.at(0)!="NONE")
   {
      unsigned int maxSize = triggerPaths_.size();
      HLT_Names.resize(maxSize);
      HLT_PhotonPt_efficiency_tmp.resize(maxSize);
-     HLT_MET_efficiency_tmp.resize(maxSize);
      HLT_PhotonPt_efficiency.resize(maxSize);
+     HLT_PhotonPt_efficiency_VBF_tmp.resize(maxSize);
+     HLT_PhotonPt_efficiency_VBF.resize(maxSize);
+     HLT_MET_efficiency_tmp.resize(maxSize);
      HLT_MET_efficiency.resize(maxSize);
+     HLT_MET_efficiency_VBF_tmp.resize(maxSize);
+     HLT_MET_efficiency_VBF.resize(maxSize);
+     HLT_Mjj_efficiency_VBF_tmp.resize(maxSize);
+     HLT_Mjj_efficiency_VBF.resize(maxSize);
      for(unsigned int iPath=0; iPath<maxSize; iPath++) 
      {
          HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
+         HLT_PhotonPt_efficiency_VBF_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),40,0.,200.);
+         HLT_PhotonPt_efficiency_VBF_tmp[iPath]->Sumw2();
          HLT_MET_efficiency_tmp[iPath] = new TH1D(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
+         HLT_MET_efficiency_VBF_tmp[iPath] = new TH1D(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
+         HLT_MET_efficiency_VBF_tmp[iPath]->Sumw2();
+         HLT_Mjj_efficiency_VBF_tmp[iPath] = new TH1D(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),100,0.,2000.);
+         HLT_Mjj_efficiency_VBF_tmp[iPath]->Sumw2();
      }
      HLT_PhotonPt_efficiency_AllOR_tmp = new TH1D("HLT_PhotonPt_efficiency_AllOR_tmp","HLT_PhotonPt_efficiency_AllOR_tmp",40,0.,200.);
-     HLT_MET_efficiency_AllOR_tmp = new TH1D("HLT_MET_efficiency_AllOR_tmp","HLT_MET_efficiency_AllOR_tmp",20,0.,400.);
      HLT_PhotonPt_efficiency_AllOR_tmp->Sumw2();
+     HLT_PhotonPt_efficiency_AllOR_VBF_tmp = new TH1D("HLT_PhotonPt_efficiency_AllOR_VBF_tmp","HLT_PhotonPt_efficiency_AllOR_VBF_tmp",40,0.,200.);
+     HLT_PhotonPt_efficiency_AllOR_VBF_tmp->Sumw2();
+     HLT_MET_efficiency_AllOR_tmp = new TH1D("HLT_MET_efficiency_AllOR_tmp","HLT_MET_efficiency_AllOR_tmp",20,0.,400.);
      HLT_MET_efficiency_AllOR_tmp->Sumw2();
+     HLT_MET_efficiency_AllOR_VBF_tmp = new TH1D("HLT_MET_efficiency_AllOR_VBF_tmp","HLT_MET_efficiency_AllOR_VBF_tmp",20,0.,400.);
+     HLT_MET_efficiency_AllOR_VBF_tmp->Sumw2();
+     HLT_Mjj_efficiency_AllOR_VBF_tmp = new TH1D("HLT_Mjj_efficiency_AllOR_VBF_tmp","HLT_Mjj_efficiency_AllOR_VBF_tmp",100,0.,2000.);
+     HLT_Mjj_efficiency_AllOR_VBF_tmp->Sumw2();
   }
   HLT_PhotonPt_denum = new TH1D("HLT_PhotonPt_denum","",40,0.,200.);
   HLT_PhotonPt_denum->Sumw2();
+  HLT_PhotonPt_VBF_denum = new TH1D("HLT_PhotonPt_VBF_denum","",40,0.,200.);
+  HLT_PhotonPt_VBF_denum->Sumw2();
   HLT_MET_denum = new TH1D("HLT_MET_denum","",20,0.,400.);
   HLT_MET_denum->Sumw2();
+  HLT_MET_VBF_denum = new TH1D("HLT_MET_VBF_denum","",20,0.,400.);
+  HLT_MET_VBF_denum->Sumw2();
+  HLT_Mjj_VBF_denum = new TH1D("HLT_Mjj_VBF_denum","",100,0.,2000.);
+  HLT_Mjj_VBF_denum->Sumw2();
   
   nTot=0.;
   nTot_step0=0.;
@@ -581,6 +623,52 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   if(fabs(vbfjets[0].eta()-vbfjets[1].eta())<deltaEtaJets_) return;
   nTotSelected_step7+=wPt;
 
+  HLT_PhotonPt_VBF_denum->Fill(thePhoton->pt(),wPt);
+  HLT_MET_VBF_denum->Fill(theMet->getCorPt(),wPt);
+  HLT_Mjj_VBF_denum->Fill(invMassJets,wPt);
+
+  passOR=false;
+  n_triggers=0;  
+  if(triggerPaths_.at(0)=="NONE") n_triggers = 1;
+  else if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
+  {
+     for(unsigned iPath=0; iPath<triggerPaths_.size(); iPath++)
+     {
+         bool passTrig=getHLTResults(trigResults,trigNames,triggerPaths_.at(iPath));
+         if(passTrig==true)
+         {
+            passOR=true;
+            HLT_MET_efficiency_VBF_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
+            HLT_PhotonPt_efficiency_VBF_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+            HLT_Mjj_efficiency_VBF_tmp.at(iPath)->Fill(invMassJets,wPt); 
+            n_triggers++;
+         }
+     }
+     if(passOR)
+     {  
+        HLT_MET_efficiency_AllOR_VBF_tmp->Fill(theMet->getCorPt(),wPt); 
+        HLT_PhotonPt_efficiency_AllOR_VBF_tmp->Fill(thePhoton->pt(),wPt); 
+        HLT_Mjj_efficiency_AllOR_VBF_tmp->Fill(invMassJets,wPt);
+     }
+  }
+  else if(triggerPaths_.at(0)=="ALL")
+  {
+     if(HLT_pathsSize==0) HLT_pathsSize = trigResults->size();
+     n_triggers=(int)trigResults->size();
+     if(trigResults->size()>1000) HLT_Names.resize(trigResults->size());
+     for(unsigned iPath=0; iPath<trigResults->size(); iPath++)
+     {
+         if(HLT_Names.at(iPath)=="") HLT_Names.at(iPath) = string(trigNames.triggerName(iPath));
+         bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
+         if(passTrig==true)
+         {
+            HLT_MET_efficiency_VBF_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
+            HLT_PhotonPt_efficiency_VBF_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+            HLT_Mjj_efficiency_VBF_tmp.at(iPath)->Fill(invMassJets,wPt); 
+         }
+     }
+  } 
+
   h_Pho_Energy_Final->Fill(thePhoton->energy(),wPt);
   h_Pho_Pt_Final->Fill(thePhoton->pt(),wPt);
   h_Pho_Eta_Final->Fill(thePhoton->eta(),wPt);
@@ -619,11 +707,29 @@ void FlashGXAnalysis::endJob()
       HLT_PhotonPt_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_tmp);
       saveTrigger(eff_PhotonPt_AllOR_tmp,HLT_PhotonPt_efficiency_AllOR);
 
+      TGraphAsymmErrors* eff_PhotonPt_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_AllOR_VBF_tmp,fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
+      eff_PhotonPt_AllOR_VBF_tmp->SetName("PhotonPt_efficiency_AllOR_VBF");
+      eff_PhotonPt_AllOR_VBF_tmp->SetTitle("PhotonPt_efficiency_AllOR_VBF");
+      HLT_PhotonPt_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_VBF_tmp);
+      saveTrigger(eff_PhotonPt_AllOR_VBF_tmp,HLT_PhotonPt_efficiency_AllOR_VBF);
+
       TGraphAsymmErrors* eff_MET_AllOR_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_tmp,fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
       eff_MET_AllOR_tmp->SetName("MET_efficiency_AllOR");
       eff_MET_AllOR_tmp->SetTitle("MET_efficiency_AllOR");
       HLT_MET_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_tmp);
       saveTrigger(eff_MET_AllOR_tmp,HLT_MET_efficiency_AllOR);
+
+      TGraphAsymmErrors* eff_MET_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_VBF_tmp,fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
+      eff_MET_AllOR_VBF_tmp->SetName("MET_efficiency_AllOR_VBF");
+      eff_MET_AllOR_VBF_tmp->SetTitle("MET_efficiency_AllOR_VBF");
+      HLT_MET_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_VBF_tmp);
+      saveTrigger(eff_MET_AllOR_VBF_tmp,HLT_MET_efficiency_AllOR_VBF);
+
+      TGraphAsymmErrors* eff_Mjj_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_AllOR_VBF_tmp,fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
+      eff_Mjj_AllOR_VBF_tmp->SetName("Mjj_efficiency_AllOR_VBF");
+      eff_Mjj_AllOR_VBF_tmp->SetTitle("Mjj_efficiency_AllOR_VBF");
+      HLT_Mjj_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_Mjj_AllOR_VBF_tmp);
+      saveTrigger(eff_Mjj_AllOR_VBF_tmp,HLT_Mjj_efficiency_AllOR_VBF);
 
       for(unsigned int iPath=0; iPath<triggerPaths_.size(); iPath++) 
       {
@@ -631,19 +737,44 @@ void FlashGXAnalysis::endJob()
           eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
           eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
+          TGraphAsymmErrors* eff_PhotonPt_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_VBF_tmp[iPath],fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_PhotonPt_VBF_tmp->SetName(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_PhotonPt_VBF_tmp->SetTitle(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+
           TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
           eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
           eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
+          TGraphAsymmErrors* eff_MET_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_VBF_tmp[iPath],fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_MET_VBF_tmp->SetName(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_MET_VBF_tmp->SetTitle(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());  
+
+          TGraphAsymmErrors* eff_Mjj_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_VBF_tmp[iPath],fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_Mjj_VBF_tmp->SetName(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_Mjj_VBF_tmp->SetTitle(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());   
+
+          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0) && isGoodTrigger(eff_Mjj_VBF_tmp,0.0))
           {
              HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
              saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+              
+             HLT_PhotonPt_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_VBF_tmp);
+             saveTrigger(eff_PhotonPt_VBF_tmp,HLT_PhotonPt_efficiency_VBF[iPath]);
+
              HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
              saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
+
+             HLT_MET_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_VBF_tmp);
+             saveTrigger(eff_MET_VBF_tmp,HLT_MET_efficiency_VBF[iPath]);
+
+             HLT_Mjj_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_Mjj_VBF_tmp);
+             saveTrigger(eff_Mjj_VBF_tmp,HLT_Mjj_efficiency_VBF[iPath]);
           }
           delete eff_PhotonPt_tmp;
+          delete eff_PhotonPt_VBF_tmp;
           delete eff_MET_tmp;
+          delete eff_MET_VBF_tmp;
+          delete eff_Mjj_VBF_tmp;
       }
    }
    else if(triggerPaths_.at(0)=="ALL")
@@ -654,20 +785,44 @@ void FlashGXAnalysis::endJob()
           eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
           eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
+          TGraphAsymmErrors* eff_PhotonPt_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_VBF_tmp[iPath],fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_PhotonPt_VBF_tmp->SetName(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_PhotonPt_VBF_tmp->SetTitle(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+
           TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
           eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
           eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
+          TGraphAsymmErrors* eff_MET_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_VBF_tmp[iPath],fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_MET_VBF_tmp->SetName(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_MET_VBF_tmp->SetTitle(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+
+          TGraphAsymmErrors* eff_Mjj_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_VBF_tmp[iPath],fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
+          eff_Mjj_VBF_tmp->SetName(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+          eff_Mjj_VBF_tmp->SetTitle(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+
+          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0) && isGoodTrigger(eff_Mjj_VBF_tmp,0.0))
           {
-             cout << iPath << " - " << HLT_PhotonPt_efficiency_tmp[iPath]->GetName() << endl; 
              HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
              saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+
+             HLT_PhotonPt_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_VBF_tmp);
+             saveTrigger(eff_PhotonPt_VBF_tmp,HLT_PhotonPt_efficiency_VBF[iPath]);
+
              HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
              saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
+
+             HLT_MET_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_VBF_tmp);
+             saveTrigger(eff_MET_VBF_tmp,HLT_MET_efficiency_VBF[iPath]);
+
+             HLT_Mjj_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_Mjj_VBF_tmp);
+             saveTrigger(eff_Mjj_VBF_tmp,HLT_Mjj_efficiency_VBF[iPath]);
           }
           delete eff_PhotonPt_tmp;
+          delete eff_PhotonPt_VBF_tmp;
           delete eff_MET_tmp;
+          delete eff_MET_VBF_tmp;
+          delete eff_Mjj_VBF_tmp;
       }
    }
 

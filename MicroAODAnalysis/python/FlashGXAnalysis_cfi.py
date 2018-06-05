@@ -31,21 +31,12 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
 
     #triggerPaths                      = cms.vstring("NONE"), #No trigger studies
     #triggerPaths                      = cms.vstring("ALL"), #Make trigger studies
-    triggerPaths                      = cms.vstring("HLT_Photon60_R9Id90_CaloIdL_IsoL",
-                                                    "HLT_Photon20_HoverELoose",
-                                                    "HLT_Photon30_HoverELoose",
-                                                    "HLT_Photon40_HoverELoose",
-                                                    "HLT_Photon50_HoverELoose",
-                                                    "HLT_Photon60_HoverELoose",
-                                                    "HLT_Photon50_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3_PFMET50",
-                                                    "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3",
-                                                    "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ600DEta3"
+    triggerPaths                      = cms.vstring(#"HLT_Photon50_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3_PFMET50",
+                                                    #"HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3",
+                                                    #"HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ600DEta3",
                                                     "HLT_DiJet110_35_Mjj650_PFMET110",
                                                     "HLT_DiJet110_35_Mjj650_PFMET120",
-                                                    "HLT_DiJet110_35_Mjj650_PFMET130",
-                                                    "HLT_TripleJet110_35_35_Mjj650_PFMET110",
-                                                    "HLT_TripleJet110_35_35_Mjj650_PFMET120",
-                                                    "HLT_TripleJet110_35_35_Mjj650_PFMET130"
+                                                    "HLT_DiJet110_35_Mjj650_PFMET130"
                                                    ), 
 
     photonPtThres                     = cms.double(20.),
@@ -206,6 +197,6 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     #pujidWpPtBin4                  = cms.vdouble(-0.89, -0.52, -0.38, -0.30), # 94X loose
     rmsforwardCut                  = cms.double(3.0), # default was 0.03 , running on loose pujid
     
-    deltaEtaJets                   = cms.double(1.),
+    deltaEtaJets                   = cms.double(2.),
     invMassJets                    = cms.double(300.),
 )
