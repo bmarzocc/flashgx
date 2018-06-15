@@ -19,13 +19,13 @@ process.MessageLogger.cerr.FwkReport.reportEvery = cms.untracked.int32( 100 )
 process.source = cms.Source("PoolSource",
     skipEvents = cms.untracked.uint32(0),                       
     fileNames = cms.untracked.vstring(
-    '/store/group/phys_higgs/HiggsExo/HToGX/bmarzocc/flashgg/RunIIFall17_DarkPhoton_v2/prod-uAOD-300-65-g97bd5bfd//W1JetsToLNu_LHEWpT_150-250_TuneCP5_13TeV-amcnloFXFX-pythia8/RunIIFall17_DarkPhoton_v2-prod-uAOD-300-65-g97bd5bfd-v0-RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/180606_172207/0000/myMicroAODOutputFile_220.root')
+    LISTOFFILES)
 )
 
-process.load('flashgx.MicroAODAnalysis.FlashGXAnalysis_cfi')
+process.load('NAMECfi')
 
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string('FlashGXAnalysis_VBFH.root')
+    fileName = cms.string('OUTPUTNAME.root')
 )
 
 process.p = cms.Path(

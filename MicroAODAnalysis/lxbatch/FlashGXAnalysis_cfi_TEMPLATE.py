@@ -15,8 +15,8 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
 
     #sampleType                        = cms.string("signal"),
     sampleType                        = cms.string("background"),
-    sampleName                        = cms.string("W1JetsToLNu_LHEWpT_150-250_TuneCP5_13TeV-amcnloFXFX-pythia8"),
-    mcInfos                           = cms.string("python/mc_infos.dat"), #name,lumi,sigma,k,N 
+    sampleName                        = cms.string("NAMESample"),
+    mcInfos                           = cms.string("mc_infos.dat"), #name,lumi,sigma,k,N 
 
     genEventInfo                      = cms.InputTag("generator","","SIM"),
     pileupInfo                        = cms.InputTag("slimmedAddPileupInfo","","PAT"),
@@ -49,8 +49,8 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     photonPtThres                     = cms.double(20.),
     photonR9Thres                     = cms.double(0.8),
 
-    applyCuBasedPhotonID              = cms.bool(False),
-    applyMVAPhotonID                  = cms.bool(True),
+    applyCuBasedPhotonID              = cms.bool(True),
+    applyMVAPhotonID                  = cms.bool(False),
     applyHggPhotonID                  = cms.bool(False),
 
     #80X MVAphotonID 

@@ -39,10 +39,15 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
 
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+
 // flashgg includes
 #include "flashgg/DataFormats/interface/DiPhotonCandidate.h"
 #include "flashgg/DataFormats/interface/Photon.h"
-#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "flashgg/DataFormats/interface/SingleVertexView.h"
 //#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 #include "flashgg/DataFormats/interface/Met.h"
@@ -92,7 +97,9 @@ class FlashGXAnalysis : public edm::EDAnalyzer
          virtual void endJob() ;
 
       // ----------additional functions-------------------
+      std::map<std::string,std::vector<double> > mcInfos(string mcInfos_);
       double ptWeight(Handle<View<reco::GenParticle> > genParticles);
+      double puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo);
       bool getHLTResults(edm::Handle<edm::TriggerResults> trigResults,const edm::TriggerNames& trigNames,std::string path);
       bool isGoodPhotonHgg(edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, double rho); 
       bool isGoodPhotonCutBased(edm::Ptr<flashgg::Photon> ipho, double rho);
@@ -107,6 +114,8 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       std::vector<reco::Candidate::LorentzVector> goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl);
       std::vector<reco::Candidate::LorentzVector> vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl);
       
+      edm::EDGetTokenT<GenEventInfoProduct> genInfoToken_;  
+      edm::EDGetTokenT<std::vector<PileupSummaryInfo> > puInfoToken_;
       edm::EDGetTokenT<edm::TriggerResults> triggerToken_;  
       edm::EDGetTokenT<double> rhoToken_;  
       edm::EDGetTokenT<edm::View<reco::GenParticle> > genParticleToken_;  
@@ -116,6 +125,11 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       edm::EDGetTokenT<edm::View<flashgg::Electron> > electronToken_; 
       edm::EDGetTokenT<edm::View<flashgg::Met> > metToken_;
       std::vector<edm::EDGetTokenT<edm::View<flashgg::Jet> > > jetsToken_;
+
+      std::string sampleType_;
+      std::string sampleName_;
+      std::string mcInfos_;
+      std::map<std::string,std::vector<double> > infos_;
 
       std::string higgsPtReweighting_;
       TH1D* h_higgsPtReweighting;
@@ -271,30 +285,15 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       unsigned int HLT_pathsSize = 0;
       std::vector<std::string> HLT_Names; 
       std::vector<TH1D*> HLT_PhotonPt_efficiency_tmp;
-      std::vector<TH1D*> HLT_PhotonPt_efficiency_VBF_tmp;
       TH1D* HLT_PhotonPt_efficiency_AllOR_tmp; 
-      TH1D* HLT_PhotonPt_efficiency_AllOR_VBF_tmp; 
       std::vector<TH1D*> HLT_MET_efficiency_tmp; 
-      std::vector<TH1D*> HLT_MET_efficiency_VBF_tmp; 
       TH1D* HLT_MET_efficiency_AllOR_tmp; 
-      TH1D* HLT_MET_efficiency_AllOR_VBF_tmp; 
       std::vector<TGraphAsymmErrors*> HLT_PhotonPt_efficiency; 
       std::vector<TGraphAsymmErrors*> HLT_MET_efficiency; 
-      std::vector<TGraphAsymmErrors*> HLT_PhotonPt_efficiency_VBF; 
-      std::vector<TGraphAsymmErrors*> HLT_MET_efficiency_VBF;
-      std::vector<TGraphAsymmErrors*> HLT_Mjj_efficiency_VBF; 
-      std::vector<TH1D*> HLT_Mjj_efficiency_VBF_tmp;
-      TH1D* HLT_Mjj_efficiency_AllOR_VBF_tmp; 
       TGraphAsymmErrors* HLT_PhotonPt_efficiency_AllOR; 
-      TGraphAsymmErrors* HLT_PhotonPt_efficiency_AllOR_VBF; 
       TGraphAsymmErrors* HLT_MET_efficiency_AllOR; 
-      TGraphAsymmErrors* HLT_MET_efficiency_AllOR_VBF; 
-      TGraphAsymmErrors* HLT_Mjj_efficiency_AllOR_VBF; 
       TH1D* HLT_PhotonPt_denum;
       TH1D* HLT_MET_denum;
-      TH1D* HLT_PhotonPt_VBF_denum;
-      TH1D* HLT_MET_VBF_denum;
-      TH1D* HLT_Mjj_VBF_denum;
 
       double nTot; 
       double nTot_step0;

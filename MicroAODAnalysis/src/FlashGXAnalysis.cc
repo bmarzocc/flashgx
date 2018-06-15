@@ -90,6 +90,8 @@ using namespace flashgg;
 FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
 {
 
+  genInfoToken_          = consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfo"));
+  puInfoToken_           = consumes<std::vector<PileupSummaryInfo> >(iConfig.getParameter<edm::InputTag>("pileupInfo"));
   triggerToken_          = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("triggerResults"));
   rhoToken_              = consumes<double>(iConfig.getParameter<edm::InputTag>("rhoCollection"));
   genParticleToken_      = consumes<View<reco::GenParticle> >(iConfig.getParameter<edm::InputTag>("genParticleCollection"));
@@ -105,7 +107,13 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
        auto token = consumes<View<flashgg::Jet> >(inputTagJets_[i]);
        jetsToken_.push_back(token);
   }
-
+  
+  sampleType_                       = iConfig.getParameter<string>("sampleType");
+  sampleName_                       = iConfig.getParameter<string>("sampleName");
+  mcInfos_                          = iConfig.getParameter<string>("mcInfos");
+  infos_ = mcInfos(mcInfos_);
+  cout <<"--->MC infos: " << sampleName_ << " - " << infos_[sampleName_][0] << " - " << infos_[sampleName_][1] << " - " << infos_[sampleName_][2] << " - " << infos_[sampleName_][3] << " - " << infos_[sampleName_][4] << " - " << infos_[sampleName_][5] << endl; 
+   
   higgsPtReweighting_               = iConfig.getParameter<string>("higgsPtReweighting");
 
   triggerPaths_                     = iConfig.getParameter<vector<string> >("triggerPaths");
@@ -186,159 +194,117 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   h_numberOfEvents        = iFile->make<TH1D>("h_numberOfEvents","h_numberOfEvents",10,-0.5,9.5);
   h_Efficiency            = iFile->make<TH1D>("h_Efficiency","h_Efficiency",10,-0.5,9.5);
 
-  h_Pho_Energy_noCut      = iFile->make<TH1D>("h_Pho_Energy_noCut","h_Pho_Energy_noCut",100,0.,600.);
-  h_Pho_Pt_noCut          = iFile->make<TH1D>("h_Pho_Pt_noCut","h_Pho_Pt_noCut",100,0.,300.);
-  h_Pho_Eta_noCut         = iFile->make<TH1D>("h_Pho_Eta_noCut","h_Pho_Eta_noCut",100,-3.,3.);
+  h_Pho_Energy_noCut      = iFile->make<TH1D>("h_Pho_Energy_noCut","h_Pho_Energy_noCut",200,0.,1000.);
+  h_Pho_Pt_noCut          = iFile->make<TH1D>("h_Pho_Pt_noCut","h_Pho_Pt_noCut",200,0.,600.);
+  h_Pho_Eta_noCut         = iFile->make<TH1D>("h_Pho_Eta_noCut","h_Pho_Eta_noCut",150,-5.,5.);
   h_Pho_Phi_noCut         = iFile->make<TH1D>("h_Pho_Phi_noCut","h_Pho_Phi_noCut",100,-3.5,3.5);
-  h_Pho_Energy            = iFile->make<TH1D>("h_Pho_Energy","h_Pho_Energy",100,0.,600.);
-  h_Pho_Pt                = iFile->make<TH1D>("h_Pho_Pt","h_Pho_Pt",100,0.,300.);
-  h_Pho_Eta               = iFile->make<TH1D>("h_Pho_Eta","h_Pho_Eta",100,-3.,3.);
+  h_Pho_Energy            = iFile->make<TH1D>("h_Pho_Energy","h_Pho_Energy",200,0.,1000.);
+  h_Pho_Pt                = iFile->make<TH1D>("h_Pho_Pt","h_Pho_Pt",200,0.,600.);
+  h_Pho_Eta               = iFile->make<TH1D>("h_Pho_Eta","h_Pho_Eta",150,-5.,5.);
   h_Pho_Phi               = iFile->make<TH1D>("h_Pho_Phi","h_Pho_Phi",100,-3.5,3.5);
-  h_Pho_Energy_Final      = iFile->make<TH1D>("h_Pho_Energy_Final","h_Pho_Energy_Final",100,0.,600.);
-  h_Pho_Pt_Final          = iFile->make<TH1D>("h_Pho_Pt_Final","h_Pho_Pt_Final",100,0.,300.);
-  h_Pho_Eta_Final         = iFile->make<TH1D>("h_Pho_Eta_Final","h_Pho_Eta_Final",100,-3.,3.);
+  h_Pho_Energy_Final      = iFile->make<TH1D>("h_Pho_Energy_Final","h_Pho_Energy_Final",200,0.,1000.);
+  h_Pho_Pt_Final          = iFile->make<TH1D>("h_Pho_Pt_Final","h_Pho_Pt_Final",200,0.,600.);
+  h_Pho_Eta_Final         = iFile->make<TH1D>("h_Pho_Eta_Final","h_Pho_Eta_Final",150,-5.,5.);
   h_Pho_Phi_Final         = iFile->make<TH1D>("h_Pho_Phi_Final","h_Pho_Phi_Final",100,-3.5,3.5);
 
-  h_MET_Pt_noCut          = iFile->make<TH1D>("h_MET_Pt_noCut","h_MET_Pt_noCut",200,0.,600.);
+  h_MET_Pt_noCut          = iFile->make<TH1D>("h_MET_Pt_noCut","h_MET_Pt_noCut",800,0.,2500.);
   h_MET_Phi_noCut         = iFile->make<TH1D>("h_MET_Phi_noCut","h_MET_Phi_noCut",100,-3.5,3.5);
-  h_MET_Pt                = iFile->make<TH1D>("h_MET_Pt","h_MET_Pt",200,0.,600.);
+  h_MET_Pt                = iFile->make<TH1D>("h_MET_Pt","h_MET_Pt",800,0.,2500.);
   h_MET_Phi               = iFile->make<TH1D>("h_MET_Phi","h_MET_Phi",100,-3.5,3.5);
-  h_MET_Pt_Final          = iFile->make<TH1D>("h_MET_Pt_Final","h_MET_Pt_Final",200,0.,600.);
+  h_MET_Pt_Final          = iFile->make<TH1D>("h_MET_Pt_Final","h_MET_Pt_Final",800,0.,2500.);
   h_MET_Phi_Final         = iFile->make<TH1D>("h_MET_Phi_Final","h_MET_Phi_Final",100,-3.5,3.5);
  
   h_dPhiMETPho_noCut      = iFile->make<TH1D>("h_dPhiMETPho_noCut","h_dPhiMETPho_noCut",100,-3.5,3.5);
-  h_MtMETPho_noCut        = iFile->make<TH1D>("h_MtMETPho_noCut","h_MtMETPho_noCut",200,0.,400.);
+  h_MtMETPho_noCut        = iFile->make<TH1D>("h_MtMETPho_noCut","h_MtMETPho_noCut",400,0.,800.);
   h_dPhiMETPho            = iFile->make<TH1D>("h_dPhiMETPho","h_dPhiMETPho",100,-3.5,3.5);
-  h_MtMETPho              = iFile->make<TH1D>("h_MtMETPho","h_MtMETPho",200,0.,400.);
+  h_MtMETPho              = iFile->make<TH1D>("h_MtMETPho","h_MtMETPho",400,0.,800.);
   h_dPhiMETPho_Final      = iFile->make<TH1D>("h_dPhiMETPho_Final","h_dPhiMETPho_Final",100,-3.5,3.5);
-  h_MtMETPho_Final        = iFile->make<TH1D>("h_MtMETPho_Final","h_MtMETPho_Final",200,0.,400.);
+  h_MtMETPho_Final        = iFile->make<TH1D>("h_MtMETPho_Final","h_MtMETPho_Final",400,0.,800.);
 
   h_nJets_noCut           = iFile->make<TH1D>("h_nJets_noCut","h_nJets_noCut",8,-0.5,7.5);
-  h_Jet_Energy_noCut      = iFile->make<TH1D>("h_Jet_Energy_noCut","h_Jet_Energy_noCut",200,0.,1500.);
-  h_Jet_Pt_noCut          = iFile->make<TH1D>("h_Jet_Pt_noCut","h_Jet_Pt_noCut",100,0.,300.);
-  h_Jet_Eta_noCut         = iFile->make<TH1D>("h_Jet_Eta_noCut","h_Jet_Eta_noCut",150,-5.,5.);
+  h_Jet_Energy_noCut      = iFile->make<TH1D>("h_Jet_Energy_noCut","h_Jet_Energy_noCut",400,0.,3000.);
+  h_Jet_Pt_noCut          = iFile->make<TH1D>("h_Jet_Pt_noCut","h_Jet_Pt_noCut",300,0.,900.);
+  h_Jet_Eta_noCut         = iFile->make<TH1D>("h_Jet_Eta_noCut","h_Jet_Eta_noCut",180,-6.,6.);
   h_Jet_Phi_noCut         = iFile->make<TH1D>("h_Jet_Phi_noCut","h_Jet_Phi_noCut",100,-3.5,3.5);
   h_dPhiJetPho_noCut      = iFile->make<TH1D>("h_dPhiJetPho_noCut","h_dPhiJetPho_noCut",100,-3.5,3.5);
-  h_dEtaJetPho_noCut      = iFile->make<TH1D>("h_dEtaJetPho_noCut","h_dEtaJetPho_noCut",100,-5,5);
-  h_dRJetPho_noCut        = iFile->make<TH1D>("h_dRJetPho_noCut","h_dRJetPho_noCut",100,0.,6.);
+  h_dEtaJetPho_noCut      = iFile->make<TH1D>("h_dEtaJetPho_noCut","h_dEtaJetPho_noCut",150,-7,7);
+  h_dRJetPho_noCut        = iFile->make<TH1D>("h_dRJetPho_noCut","h_dRJetPho_noCut",100,0.,8.);
 
   h_nJets                 = iFile->make<TH1D>("h_nJets","h_nJets",8,-0.5,7.5);
-  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",200,0.,1500.);
-  h_Jet_Pt                = iFile->make<TH1D>("h_Jet_Pt","h_Jet_Pt",100,0.,300.);
-  h_Jet_Eta               = iFile->make<TH1D>("h_Jet_Eta","h_Jet_Eta",150,-5.,5.);
+  h_Jet_Energy            = iFile->make<TH1D>("h_Jet_Energy","h_Jet_Energy",400,0.,3000.);
+  h_Jet_Pt                = iFile->make<TH1D>("h_Jet_Pt","h_Jet_Pt",300,0.,900.);
+  h_Jet_Eta               = iFile->make<TH1D>("h_Jet_Eta","h_Jet_Eta",180,-6.,6.);
   h_Jet_Phi               = iFile->make<TH1D>("h_Jet_Phi","h_Jet_Phi",100,-3.5,3.5);
   h_dPhiJetPho            = iFile->make<TH1D>("h_dPhiJetPho","h_dPhiJetPho",100,-3.5,3.5);
-  h_dEtaJetPho            = iFile->make<TH1D>("h_dEtaJetPho","h_dEtaJetPho",100,-5,5);
-  h_dRJetPho              = iFile->make<TH1D>("h_dRJetPho","h_dRJetPho",100,0.,6.);
+  h_dEtaJetPho            = iFile->make<TH1D>("h_dEtaJetPho","h_dEtaJetPho",150,-7,7);
+  h_dRJetPho              = iFile->make<TH1D>("h_dRJetPho","h_dRJetPho",100,0.,8.);
 
-  h_VBFjet1_Energy        = iFile->make<TH1D>("h_VBFjet1_Energy","h_VBFjet1_Energy",200,0.,1500.);
-  h_VBFjet1_Pt            = iFile->make<TH1D>("h_VBFjet1_Pt","h_VBFjet1_Pt",200,0.,600.);
-  h_VBFjet1_Eta           = iFile->make<TH1D>("h_VBFjet1_Eta","h_VBFjet1_Eta",150,-5.,5.);
+  h_VBFjet1_Energy        = iFile->make<TH1D>("h_VBFjet1_Energy","h_VBFjet1_Energy",400,0.,3000.);
+  h_VBFjet1_Pt            = iFile->make<TH1D>("h_VBFjet1_Pt","h_VBFjet1_Pt",300,0.,900.);
+  h_VBFjet1_Eta           = iFile->make<TH1D>("h_VBFjet1_Eta","h_VBFjet1_Eta",180,-6.,6.);
   h_VBFjet1_Phi           = iFile->make<TH1D>("h_VBFjet1_Phi","h_VBFjet1_Phi",100,-3.5,3.5);
 
-  h_VBFjet2_Energy        = iFile->make<TH1D>("h_VBFjet2_Energy","h_VBFjet2_Energy",200,0.,1500.);
-  h_VBFjet2_Pt            = iFile->make<TH1D>("h_VBFjet2_Pt","h_VBFjet2_Pt",200,0.,600.);
-  h_VBFjet2_Eta           = iFile->make<TH1D>("h_VBFjet2_Eta","h_VBFjet2_Eta",150,-5.,5.);
+  h_VBFjet2_Energy        = iFile->make<TH1D>("h_VBFjet2_Energy","h_VBFjet2_Energy",400,0.,3000.);
+  h_VBFjet2_Pt            = iFile->make<TH1D>("h_VBFjet2_Pt","h_VBFjet2_Pt",300,0.,900.);
+  h_VBFjet2_Eta           = iFile->make<TH1D>("h_VBFjet2_Eta","h_VBFjet2_Eta",180,-6.,6.);
   h_VBFjet2_Phi           = iFile->make<TH1D>("h_VBFjet2_Phi","h_VBFjet2_Phi",100,-3.5,3.5);
 
-  h_VBFjet1_Energy_Final  = iFile->make<TH1D>("h_VBFjet1_Energy_Final","h_VBFjet1_Energy_Final",200,0.,1500.);
-  h_VBFjet1_Pt_Final      = iFile->make<TH1D>("h_VBFjet1_Pt_Final","h_VBFjet1_Pt_Final",200,0.,600.);
-  h_VBFjet1_Eta_Final     = iFile->make<TH1D>("h_VBFjet1_Eta_Final","h_VBFjet1_Eta_Final",150,-5.,5.);
+  h_VBFjet1_Energy_Final  = iFile->make<TH1D>("h_VBFjet1_Energy_Final","h_VBFjet1_Energy_Final",400,0.,3000.);
+  h_VBFjet1_Pt_Final      = iFile->make<TH1D>("h_VBFjet1_Pt_Final","h_VBFjet1_Pt_Final",300,0.,900.);
+  h_VBFjet1_Eta_Final     = iFile->make<TH1D>("h_VBFjet1_Eta_Final","h_VBFjet1_Eta_Final",180,-6.,6.);
   h_VBFjet1_Phi_Final     = iFile->make<TH1D>("h_VBFjet1_Phi_Final","h_VBFjet1_Phi_Final",100,-3.5,3.5);
 
-  h_VBFjet2_Energy_Final  = iFile->make<TH1D>("h_VBFjet2_Energy_Final","h_VBFjet2_Energy_Final",200,0.,1500.);
-  h_VBFjet2_Pt_Final      = iFile->make<TH1D>("h_VBFjet2_Pt_Final","h_VBFjet2_Pt_Final",200,0.,600.);
-  h_VBFjet2_Eta_Final     = iFile->make<TH1D>("h_VBFjet2_Eta_Final","h_VBFjet2_Eta_Final",150,-5.,5.);
+  h_VBFjet2_Energy_Final  = iFile->make<TH1D>("h_VBFjet2_Energy_Final","h_VBFjet2_Energy_Final",400,0.,3000.);
+  h_VBFjet2_Pt_Final      = iFile->make<TH1D>("h_VBFjet2_Pt_Final","h_VBFjet2_Pt_Final",300,0.,900.);
+  h_VBFjet2_Eta_Final     = iFile->make<TH1D>("h_VBFjet2_Eta_Final","h_VBFjet2_Eta_Final",180,-6.,6.);
   h_VBFjet2_Phi_Final     = iFile->make<TH1D>("h_VBFjet2_Phi_Final","h_VBFjet2_Phi_Final",100,-3.5,3.5);
 
-  h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",200,0.,1500.);
-  h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",150,-7.,7.);
+  h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",500,0.,5000.);
+  h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",180,-9.,9.);
   
   if(triggerPaths_.at(0)=="ALL")
   {
      unsigned int maxSize = 1000;
      HLT_Names.resize(maxSize);
      HLT_PhotonPt_efficiency_tmp.resize(maxSize);
-     HLT_PhotonPt_efficiency.resize(maxSize);
-     HLT_PhotonPt_efficiency_VBF_tmp.resize(maxSize);
-     HLT_PhotonPt_efficiency_VBF.resize(maxSize);
      HLT_MET_efficiency_tmp.resize(maxSize);
+     HLT_PhotonPt_efficiency.resize(maxSize);
      HLT_MET_efficiency.resize(maxSize);
-     HLT_MET_efficiency_VBF_tmp.resize(maxSize);
-     HLT_MET_efficiency_VBF.resize(maxSize);
-     HLT_Mjj_efficiency_VBF_tmp.resize(maxSize);
-     HLT_Mjj_efficiency_VBF.resize(maxSize);
      for(unsigned int iPath=0; iPath<maxSize; iPath++) 
      {
          char  photonName[500];
          sprintf (photonName,"PhotonPt_efficiency_%d",iPath);
          HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(photonName,photonName,40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
-         char  photonName_VBF[500];
-         sprintf (photonName_VBF,"PhotonPt_efficiency_%d_VBF",iPath);
-         HLT_PhotonPt_efficiency_VBF_tmp[iPath] = new TH1D(photonName_VBF,photonName_VBF,40,0.,200.);
-         HLT_PhotonPt_efficiency_VBF_tmp[iPath]->Sumw2();
          char  metName[500];
          sprintf (metName,"MET_efficiency_%d",iPath);
          HLT_MET_efficiency_tmp[iPath] = new TH1D(metName,metName,20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
-         char  metName_VBF[500];
-         sprintf (metName_VBF,"MET_efficiency_%d_VBF",iPath);
-         HLT_MET_efficiency_VBF_tmp[iPath] = new TH1D(metName_VBF,metName_VBF,20,0.,400.);
-         HLT_MET_efficiency_VBF_tmp[iPath]->Sumw2();
-         char  mjjName_VBF[500];
-         sprintf (mjjName_VBF,"Mjj_efficiency_%d_VBF",iPath);
-         HLT_Mjj_efficiency_VBF_tmp[iPath] = new TH1D(mjjName_VBF,mjjName_VBF,100,0.,2000.);
-         HLT_Mjj_efficiency_VBF_tmp[iPath]->Sumw2();
      }
   }else if(triggerPaths_.at(0)!="ALL" && triggerPaths_.at(0)!="NONE")
   {
      unsigned int maxSize = triggerPaths_.size();
      HLT_Names.resize(maxSize);
      HLT_PhotonPt_efficiency_tmp.resize(maxSize);
-     HLT_PhotonPt_efficiency.resize(maxSize);
-     HLT_PhotonPt_efficiency_VBF_tmp.resize(maxSize);
-     HLT_PhotonPt_efficiency_VBF.resize(maxSize);
      HLT_MET_efficiency_tmp.resize(maxSize);
+     HLT_PhotonPt_efficiency.resize(maxSize);
      HLT_MET_efficiency.resize(maxSize);
-     HLT_MET_efficiency_VBF_tmp.resize(maxSize);
-     HLT_MET_efficiency_VBF.resize(maxSize);
-     HLT_Mjj_efficiency_VBF_tmp.resize(maxSize);
-     HLT_Mjj_efficiency_VBF.resize(maxSize);
      for(unsigned int iPath=0; iPath<maxSize; iPath++) 
      {
          HLT_PhotonPt_efficiency_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str(),40,0.,200.);
          HLT_PhotonPt_efficiency_tmp[iPath]->Sumw2();
-         HLT_PhotonPt_efficiency_VBF_tmp[iPath] = new TH1D(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),40,0.,200.);
-         HLT_PhotonPt_efficiency_VBF_tmp[iPath]->Sumw2();
          HLT_MET_efficiency_tmp[iPath] = new TH1D(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
          HLT_MET_efficiency_tmp[iPath]->Sumw2();
-         HLT_MET_efficiency_VBF_tmp[iPath] = new TH1D(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),20,0.,400.);
-         HLT_MET_efficiency_VBF_tmp[iPath]->Sumw2();
-         HLT_Mjj_efficiency_VBF_tmp[iPath] = new TH1D(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str(),100,0.,2000.);
-         HLT_Mjj_efficiency_VBF_tmp[iPath]->Sumw2();
      }
      HLT_PhotonPt_efficiency_AllOR_tmp = new TH1D("HLT_PhotonPt_efficiency_AllOR_tmp","HLT_PhotonPt_efficiency_AllOR_tmp",40,0.,200.);
-     HLT_PhotonPt_efficiency_AllOR_tmp->Sumw2();
-     HLT_PhotonPt_efficiency_AllOR_VBF_tmp = new TH1D("HLT_PhotonPt_efficiency_AllOR_VBF_tmp","HLT_PhotonPt_efficiency_AllOR_VBF_tmp",40,0.,200.);
-     HLT_PhotonPt_efficiency_AllOR_VBF_tmp->Sumw2();
      HLT_MET_efficiency_AllOR_tmp = new TH1D("HLT_MET_efficiency_AllOR_tmp","HLT_MET_efficiency_AllOR_tmp",20,0.,400.);
+     HLT_PhotonPt_efficiency_AllOR_tmp->Sumw2();
      HLT_MET_efficiency_AllOR_tmp->Sumw2();
-     HLT_MET_efficiency_AllOR_VBF_tmp = new TH1D("HLT_MET_efficiency_AllOR_VBF_tmp","HLT_MET_efficiency_AllOR_VBF_tmp",20,0.,400.);
-     HLT_MET_efficiency_AllOR_VBF_tmp->Sumw2();
-     HLT_Mjj_efficiency_AllOR_VBF_tmp = new TH1D("HLT_Mjj_efficiency_AllOR_VBF_tmp","HLT_Mjj_efficiency_AllOR_VBF_tmp",100,0.,2000.);
-     HLT_Mjj_efficiency_AllOR_VBF_tmp->Sumw2();
   }
   HLT_PhotonPt_denum = new TH1D("HLT_PhotonPt_denum","",40,0.,200.);
   HLT_PhotonPt_denum->Sumw2();
-  HLT_PhotonPt_VBF_denum = new TH1D("HLT_PhotonPt_VBF_denum","",40,0.,200.);
-  HLT_PhotonPt_VBF_denum->Sumw2();
   HLT_MET_denum = new TH1D("HLT_MET_denum","",20,0.,400.);
   HLT_MET_denum->Sumw2();
-  HLT_MET_VBF_denum = new TH1D("HLT_MET_VBF_denum","",20,0.,400.);
-  HLT_MET_VBF_denum->Sumw2();
-  HLT_Mjj_VBF_denum = new TH1D("HLT_Mjj_VBF_denum","",100,0.,2000.);
-  HLT_Mjj_VBF_denum->Sumw2();
   
   nTot=0.;
   nTot_step0=0.;
@@ -351,8 +317,11 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   nTotSelected_step6=0.;
   nTotSelected_step7=0.;
   
-  TFile* higgsPtFile = TFile::Open(higgsPtReweighting_.c_str()); 
-  h_higgsPtReweighting = (TH1D*)higgsPtFile->Get("h_Higgs_pt_reweighting");
+  if(sampleType_=="signal")
+  {
+     TFile* higgsPtFile = TFile::Open(higgsPtReweighting_.c_str()); 
+     h_higgsPtReweighting = (TH1D*)higgsPtFile->Get("h_Higgs_pt_reweighting");
+  }
 }
 
 FlashGXAnalysis::~FlashGXAnalysis()
@@ -369,6 +338,12 @@ FlashGXAnalysis::~FlashGXAnalysis()
 // ------------ method called to for each event  ------------
 void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetup)
 {
+
+  edm::Handle<GenEventInfoProduct> genInfo;
+  if(sampleType_!="data") ev.getByToken(genInfoToken_, genInfo);
+
+  edm::Handle<std::vector<PileupSummaryInfo> > puInfo;
+  ev.getByToken(puInfoToken_,puInfo);
 
   edm::Handle<edm::TriggerResults> trigResults;
   ev.getByToken(triggerToken_,trigResults);
@@ -402,16 +377,32 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   for(size_t j=0;j<inputTagJets_.size();++j)
       ev.getByToken(jetsToken_[j],Jets[j]);
 
-  //compute the higgsPt weight
-  double wPt = ptWeight(genParticles);
-  //std::cout << "wPt = " << wPt << std::endl;
-
-  nTot_step0+=wPt;
-  if(photons->size() == 0) nTotSelected_step0+=wPt;
+  double wTot = 1.;
+  double wGen = 1.;
+  double wSig = 1.;
+ 
+  //compute weights
+  if(sampleType_!="data")
+  {
+     if("signal") wSig = ptWeight(genParticles);
+     if(infos_[sampleName_].size()<6)
+     { 
+        cout << "WARNING: " << sampleName_ << " ---> Missing information, setting weight to 1!" << endl;  
+     }else{
+        if(genInfo.isValid()) wGen = infos_[sampleName_][0]*infos_[sampleName_][1]*infos_[sampleName_][3]*infos_[sampleName_][4]*TMath::Sign(1, genInfo->weight())/(infos_[sampleName_][2]*(1-infos_[sampleName_][5]));
+        else wGen = infos_[sampleName_][0]*infos_[sampleName_][1]*infos_[sampleName_][3]*infos_[sampleName_][4]/infos_[sampleName_][2];
+     }
+  }
+  
+  wTot *= wGen*wSig;
+  //cout << "Weights: " << wGen << "(wGen) - " << wSig << "(wSig) - " << wTot << "(wTot)"   << endl;
+  
+  nTot_step0+=wTot;
+  if(photons->size() == 0) nTotSelected_step0+=wTot;
   if(photons->size() == 0) return;
 
   //apply global event selection
-  nTot+=wPt;
+  nTot+=wTot;
 
   //compute trigger efficiencies
   int selectedPhoton=0;
@@ -429,16 +420,16 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   edm::Ptr<flashgg::Photon> thePhoton = photons->ptrAt(selectedPhoton);
   double deltaPhiPhotonMet = deltaPhi(metPhiCorr(theMet),thePhoton->phi());
 
-  h_Pho_Energy_noCut->Fill(thePhoton->energy(),wPt);
-  h_Pho_Pt_noCut->Fill(thePhoton->pt(),wPt);
-  h_Pho_Eta_noCut->Fill(thePhoton->eta(),wPt);
-  h_Pho_Phi_noCut->Fill(thePhoton->phi(),wPt);
+  h_Pho_Energy_noCut->Fill(thePhoton->energy(),wTot);
+  h_Pho_Pt_noCut->Fill(thePhoton->pt(),wTot);
+  h_Pho_Eta_noCut->Fill(thePhoton->eta(),wTot);
+  h_Pho_Phi_noCut->Fill(thePhoton->phi(),wTot);
 
-  h_MET_Pt_noCut->Fill(theMet->getCorPt(),wPt);
-  h_MET_Phi_noCut->Fill(metPhiCorr(theMet),wPt);
+  h_MET_Pt_noCut->Fill(theMet->getCorPt(),wTot);
+  h_MET_Phi_noCut->Fill(metPhiCorr(theMet),wTot);
 
-  h_dPhiMETPho_noCut->Fill(deltaPhiPhotonMet,wPt);
-  h_MtMETPho_noCut->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
+  h_dPhiMETPho_noCut->Fill(deltaPhiPhotonMet,wTot);
+  h_MtMETPho_noCut->Fill(computeMtMETPhoton(thePhoton,theMet),wTot);
 
   //apply photonID and select the best photon
   selectedPhoton=0;
@@ -473,21 +464,21 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //Photon selections 
   if(nSelectedPhotons!=1) return;
-  nTotSelected_step1+=wPt;
+  nTotSelected_step1+=wTot;
   thePhoton = photons->ptrAt(selectedPhoton);
 
-  h_Pho_Energy->Fill(thePhoton->energy(),wPt);
-  h_Pho_Pt->Fill(thePhoton->pt(),wPt);
-  h_Pho_Eta->Fill(thePhoton->eta(),wPt);
-  h_Pho_Phi->Fill(thePhoton->phi(),wPt);
+  h_Pho_Energy->Fill(thePhoton->energy(),wTot);
+  h_Pho_Pt->Fill(thePhoton->pt(),wTot);
+  h_Pho_Eta->Fill(thePhoton->eta(),wTot);
+  h_Pho_Phi->Fill(thePhoton->phi(),wTot);
 
   //metCut & deltaPhi(MET-Photon) 
   if(theMet->getCorPt()<metThres_) return; 
   if(fabs(deltaPhiPhotonMet)<dPhiPhotonMetThres_) return;
-  nTotSelected_step2+=wPt;
+  nTotSelected_step2+=wTot;
 
-  HLT_PhotonPt_denum->Fill(thePhoton->pt(),wPt);
-  HLT_MET_denum->Fill(theMet->getCorPt(),wPt);
+  HLT_PhotonPt_denum->Fill(thePhoton->pt(),wTot);
+  HLT_MET_denum->Fill(theMet->getCorPt(),wTot);
 
   bool passOR=false;
   int n_triggers=0;
@@ -501,15 +492,15 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
          if(passTrig==true)
          {
             passOR=true;
-            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wTot); 
+            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wTot); 
             n_triggers++;
          }
      }
      if(passOR)
      {
-        HLT_MET_efficiency_AllOR_tmp->Fill(theMet->getCorPt(),wPt); 
-        HLT_PhotonPt_efficiency_AllOR_tmp->Fill(thePhoton->pt(),wPt); 
+        HLT_MET_efficiency_AllOR_tmp->Fill(theMet->getCorPt(),wTot); 
+        HLT_PhotonPt_efficiency_AllOR_tmp->Fill(thePhoton->pt(),wTot); 
      }
   }
   else if(triggerPaths_.at(0)=="ALL")
@@ -523,21 +514,21 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
          bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
          if(passTrig==true)
          {
-            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
+            HLT_MET_efficiency_tmp.at(iPath)->Fill(theMet->getCorPt(),wTot); 
+            HLT_PhotonPt_efficiency_tmp.at(iPath)->Fill(thePhoton->pt(),wTot); 
          }
      }
   } 
 
   //apply trigger selections
   if(n_triggers<1) return;
-  nTotSelected_step3+=wPt;
+  nTotSelected_step3+=wTot;
 
-  h_MET_Pt->Fill(theMet->getCorPt(),wPt);
-  h_MET_Phi->Fill(metPhiCorr(theMet),wPt);
+  h_MET_Pt->Fill(theMet->getCorPt(),wTot);
+  h_MET_Phi->Fill(metPhiCorr(theMet),wTot);
 
-  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wPt);
-  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
+  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wTot);
+  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wTot);
 
   //muon selections
   std::vector<edm::Ptr<flashgg::Muon> > goodMuons;
@@ -562,7 +553,7 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //no good muons and electrons
   if(goodMuons.size() != 0 || goodElectrons.size() != 0) return;
-  nTotSelected_step4+=wPt;
+  nTotSelected_step4+=wTot;
 
   int iColl = 0;
 
@@ -570,16 +561,16 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   {
       edm::Ptr<flashgg::Jet> theJet = Jets[iColl]->ptrAt(jetIndex);
 
-      h_Jet_Energy_noCut->Fill(theJet->energy(),wPt);
-      h_Jet_Pt_noCut->Fill(theJet->pt(),wPt);
-      h_Jet_Eta_noCut->Fill(theJet->eta(),wPt);
-      h_Jet_Phi_noCut->Fill(theJet->phi(),wPt);
+      h_Jet_Energy_noCut->Fill(theJet->energy(),wTot);
+      h_Jet_Pt_noCut->Fill(theJet->pt(),wTot);
+      h_Jet_Eta_noCut->Fill(theJet->eta(),wTot);
+      h_Jet_Phi_noCut->Fill(theJet->phi(),wTot);
 
-      h_dPhiJetPho_noCut->Fill(deltaPhi(theJet->phi(),thePhoton->phi()),wPt);
-      h_dEtaJetPho_noCut->Fill(theJet->eta()-thePhoton->eta(),wPt);
-      h_dRJetPho_noCut->Fill(deltaR(theJet->eta(),theJet->phi(),thePhoton->eta(),thePhoton->phi()),wPt);
+      h_dPhiJetPho_noCut->Fill(deltaPhi(theJet->phi(),thePhoton->phi()),wTot);
+      h_dEtaJetPho_noCut->Fill(theJet->eta()-thePhoton->eta(),wTot);
+      h_dRJetPho_noCut->Fill(deltaR(theJet->eta(),theJet->phi(),thePhoton->eta(),thePhoton->phi()),wTot);
 
-      h_nJets_noCut->Fill((int)Jets[iColl]->size(),wPt);
+      h_nJets_noCut->Fill((int)Jets[iColl]->size(),wTot);
   }
 
   vbfjets.clear();
@@ -587,104 +578,58 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   for(unsigned int jetIndex=0;jetIndex<vbfjets.size();jetIndex++) 
   {
-      h_Jet_Energy->Fill(vbfjets[jetIndex].energy(),wPt);
-      h_Jet_Pt->Fill(vbfjets[jetIndex].pt(),wPt);
-      h_Jet_Eta->Fill(vbfjets[jetIndex].eta(),wPt);
-      h_Jet_Phi->Fill(vbfjets[jetIndex].phi(),wPt);
+      h_Jet_Energy->Fill(vbfjets[jetIndex].energy(),wTot);
+      h_Jet_Pt->Fill(vbfjets[jetIndex].pt(),wTot);
+      h_Jet_Eta->Fill(vbfjets[jetIndex].eta(),wTot);
+      h_Jet_Phi->Fill(vbfjets[jetIndex].phi(),wTot);
 
-      h_dPhiJetPho->Fill(deltaPhi(vbfjets[jetIndex].phi(),thePhoton->phi()),wPt);
-      h_dEtaJetPho->Fill(vbfjets[jetIndex].eta()-thePhoton->eta(),wPt);
-      h_dRJetPho->Fill(deltaR(vbfjets[jetIndex].eta(),vbfjets[jetIndex].phi(),thePhoton->eta(),thePhoton->phi()),wPt);
+      h_dPhiJetPho->Fill(deltaPhi(vbfjets[jetIndex].phi(),thePhoton->phi()),wTot);
+      h_dEtaJetPho->Fill(vbfjets[jetIndex].eta()-thePhoton->eta(),wTot);
+      h_dRJetPho->Fill(deltaR(vbfjets[jetIndex].eta(),vbfjets[jetIndex].phi(),thePhoton->eta(),thePhoton->phi()),wTot);
 
-      h_nJets->Fill((int)vbfjets.size(),wPt);
+      h_nJets->Fill((int)vbfjets.size(),wTot);
   }
 
   if(vbfjets.size()<2) return;
-  nTotSelected_step5+=wPt;
+  nTotSelected_step5+=wTot;
 
   reco::Candidate::LorentzVector sumJets = vbfjets[0] + vbfjets[1];
   double invMassJets = sumJets.M();
 
-  h_VBFjet1_Energy->Fill(vbfjets[0].energy(),wPt);
-  h_VBFjet1_Pt->Fill(vbfjets[0].pt(),wPt);
-  h_VBFjet1_Eta->Fill(vbfjets[0].eta(),wPt);
-  h_VBFjet1_Phi->Fill(vbfjets[0].phi(),wPt);
+  h_VBFjet1_Energy->Fill(vbfjets[0].energy(),wTot);
+  h_VBFjet1_Pt->Fill(vbfjets[0].pt(),wTot);
+  h_VBFjet1_Eta->Fill(vbfjets[0].eta(),wTot);
+  h_VBFjet1_Phi->Fill(vbfjets[0].phi(),wTot);
 
-  h_VBFjet2_Energy->Fill(vbfjets[1].energy(),wPt);
-  h_VBFjet2_Pt->Fill(vbfjets[1].pt(),wPt);
-  h_VBFjet2_Eta->Fill(vbfjets[1].eta(),wPt);
-  h_VBFjet2_Phi->Fill(vbfjets[1].phi(),wPt);
+  h_VBFjet2_Energy->Fill(vbfjets[1].energy(),wTot);
+  h_VBFjet2_Pt->Fill(vbfjets[1].pt(),wTot);
+  h_VBFjet2_Eta->Fill(vbfjets[1].eta(),wTot);
+  h_VBFjet2_Phi->Fill(vbfjets[1].phi(),wTot);
 
-  h_VBFjets_invMass->Fill(invMassJets,wPt);
-  h_VBFjets_dEta->Fill(vbfjets[0].eta()-vbfjets[1].eta(),wPt);
+  h_VBFjets_invMass->Fill(invMassJets,wTot);
+  h_VBFjets_dEta->Fill(vbfjets[0].eta()-vbfjets[1].eta(),wTot);
 
   if(invMassJets<invMassJets_) return;
-  nTotSelected_step6+=wPt;
+  nTotSelected_step6+=wTot;
   if(fabs(vbfjets[0].eta()-vbfjets[1].eta())<deltaEtaJets_) return;
-  nTotSelected_step7+=wPt;
+  nTotSelected_step7+=wTot;
 
-  HLT_PhotonPt_VBF_denum->Fill(thePhoton->pt(),wPt);
-  HLT_MET_VBF_denum->Fill(theMet->getCorPt(),wPt);
-  HLT_Mjj_VBF_denum->Fill(invMassJets,wPt);
-
-  passOR=false;
-  n_triggers=0;  
-  if(triggerPaths_.at(0)=="NONE") n_triggers = 1;
-  else if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
-  {
-     for(unsigned iPath=0; iPath<triggerPaths_.size(); iPath++)
-     {
-         bool passTrig=getHLTResults(trigResults,trigNames,triggerPaths_.at(iPath));
-         if(passTrig==true)
-         {
-            passOR=true;
-            HLT_MET_efficiency_VBF_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_VBF_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
-            HLT_Mjj_efficiency_VBF_tmp.at(iPath)->Fill(invMassJets,wPt); 
-            n_triggers++;
-         }
-     }
-     if(passOR)
-     {  
-        HLT_MET_efficiency_AllOR_VBF_tmp->Fill(theMet->getCorPt(),wPt); 
-        HLT_PhotonPt_efficiency_AllOR_VBF_tmp->Fill(thePhoton->pt(),wPt); 
-        HLT_Mjj_efficiency_AllOR_VBF_tmp->Fill(invMassJets,wPt);
-     }
-  }
-  else if(triggerPaths_.at(0)=="ALL")
-  {
-     if(HLT_pathsSize==0) HLT_pathsSize = trigResults->size();
-     n_triggers=(int)trigResults->size();
-     if(trigResults->size()>1000) HLT_Names.resize(trigResults->size());
-     for(unsigned iPath=0; iPath<trigResults->size(); iPath++)
-     {
-         if(HLT_Names.at(iPath)=="") HLT_Names.at(iPath) = string(trigNames.triggerName(iPath));
-         bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
-         if(passTrig==true)
-         {
-            HLT_MET_efficiency_VBF_tmp.at(iPath)->Fill(theMet->getCorPt(),wPt); 
-            HLT_PhotonPt_efficiency_VBF_tmp.at(iPath)->Fill(thePhoton->pt(),wPt); 
-            HLT_Mjj_efficiency_VBF_tmp.at(iPath)->Fill(invMassJets,wPt); 
-         }
-     }
-  } 
-
-  h_Pho_Energy_Final->Fill(thePhoton->energy(),wPt);
-  h_Pho_Pt_Final->Fill(thePhoton->pt(),wPt);
-  h_Pho_Eta_Final->Fill(thePhoton->eta(),wPt);
-  h_Pho_Phi_Final->Fill(thePhoton->phi(),wPt);
-  h_MET_Pt_Final->Fill(theMet->getCorPt(),wPt);
-  h_MET_Phi_Final->Fill(metPhiCorr(theMet),wPt);
-  h_dPhiMETPho_Final->Fill(deltaPhiPhotonMet,wPt);
-  h_MtMETPho_Final->Fill(computeMtMETPhoton(thePhoton,theMet),wPt);
-  h_VBFjet1_Energy_Final->Fill(vbfjets[0].energy(),wPt);
-  h_VBFjet1_Pt_Final->Fill(vbfjets[0].pt(),wPt);
-  h_VBFjet1_Eta_Final->Fill(vbfjets[0].eta(),wPt);
-  h_VBFjet1_Phi_Final->Fill(vbfjets[0].phi(),wPt);
-  h_VBFjet2_Energy_Final->Fill(vbfjets[1].energy(),wPt);
-  h_VBFjet2_Pt_Final->Fill(vbfjets[1].pt(),wPt);
-  h_VBFjet2_Eta_Final->Fill(vbfjets[1].eta(),wPt);
-  h_VBFjet2_Phi_Final->Fill(vbfjets[1].phi(),wPt);
+  h_Pho_Energy_Final->Fill(thePhoton->energy(),wTot);
+  h_Pho_Pt_Final->Fill(thePhoton->pt(),wTot);
+  h_Pho_Eta_Final->Fill(thePhoton->eta(),wTot);
+  h_Pho_Phi_Final->Fill(thePhoton->phi(),wTot);
+  h_MET_Pt_Final->Fill(theMet->getCorPt(),wTot);
+  h_MET_Phi_Final->Fill(metPhiCorr(theMet),wTot);
+  h_dPhiMETPho_Final->Fill(deltaPhiPhotonMet,wTot);
+  h_MtMETPho_Final->Fill(computeMtMETPhoton(thePhoton,theMet),wTot);
+  h_VBFjet1_Energy_Final->Fill(vbfjets[0].energy(),wTot);
+  h_VBFjet1_Pt_Final->Fill(vbfjets[0].pt(),wTot);
+  h_VBFjet1_Eta_Final->Fill(vbfjets[0].eta(),wTot);
+  h_VBFjet1_Phi_Final->Fill(vbfjets[0].phi(),wTot);
+  h_VBFjet2_Energy_Final->Fill(vbfjets[1].energy(),wTot);
+  h_VBFjet2_Pt_Final->Fill(vbfjets[1].pt(),wTot);
+  h_VBFjet2_Eta_Final->Fill(vbfjets[1].eta(),wTot);
+  h_VBFjet2_Phi_Final->Fill(vbfjets[1].phi(),wTot);
 
   vbfjets.clear();
  
@@ -699,130 +644,66 @@ void FlashGXAnalysis::beginJob()
 void FlashGXAnalysis::endJob() 
 {
 
-   if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
+   if(sampleType_!="background")
    {
-      TGraphAsymmErrors* eff_PhotonPt_AllOR_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_AllOR_tmp,fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
-      eff_PhotonPt_AllOR_tmp->SetName("PhotonPt_efficiency_AllOR");
-      eff_PhotonPt_AllOR_tmp->SetTitle("PhotonPt_efficiency_AllOR");
-      HLT_PhotonPt_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_tmp);
-      saveTrigger(eff_PhotonPt_AllOR_tmp,HLT_PhotonPt_efficiency_AllOR);
-
-      TGraphAsymmErrors* eff_PhotonPt_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_AllOR_VBF_tmp,fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
-      eff_PhotonPt_AllOR_VBF_tmp->SetName("PhotonPt_efficiency_AllOR_VBF");
-      eff_PhotonPt_AllOR_VBF_tmp->SetTitle("PhotonPt_efficiency_AllOR_VBF");
-      HLT_PhotonPt_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_VBF_tmp);
-      saveTrigger(eff_PhotonPt_AllOR_VBF_tmp,HLT_PhotonPt_efficiency_AllOR_VBF);
-
-      TGraphAsymmErrors* eff_MET_AllOR_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_tmp,fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
-      eff_MET_AllOR_tmp->SetName("MET_efficiency_AllOR");
-      eff_MET_AllOR_tmp->SetTitle("MET_efficiency_AllOR");
-      HLT_MET_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_tmp);
-      saveTrigger(eff_MET_AllOR_tmp,HLT_MET_efficiency_AllOR);
-
-      TGraphAsymmErrors* eff_MET_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_VBF_tmp,fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
-      eff_MET_AllOR_VBF_tmp->SetName("MET_efficiency_AllOR_VBF");
-      eff_MET_AllOR_VBF_tmp->SetTitle("MET_efficiency_AllOR_VBF");
-      HLT_MET_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_VBF_tmp);
-      saveTrigger(eff_MET_AllOR_VBF_tmp,HLT_MET_efficiency_AllOR_VBF);
-
-      TGraphAsymmErrors* eff_Mjj_AllOR_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_AllOR_VBF_tmp,fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
-      eff_Mjj_AllOR_VBF_tmp->SetName("Mjj_efficiency_AllOR_VBF");
-      eff_Mjj_AllOR_VBF_tmp->SetTitle("Mjj_efficiency_AllOR_VBF");
-      HLT_Mjj_efficiency_AllOR_VBF = iFile->make<TGraphAsymmErrors>(*eff_Mjj_AllOR_VBF_tmp);
-      saveTrigger(eff_Mjj_AllOR_VBF_tmp,HLT_Mjj_efficiency_AllOR_VBF);
-
-      for(unsigned int iPath=0; iPath<triggerPaths_.size(); iPath++) 
+      if(triggerPaths_.at(0)!="NONE" && triggerPaths_.at(0)!="ALL")
       {
-          TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
-          eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
-          eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+         TGraphAsymmErrors* eff_PhotonPt_AllOR_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_AllOR_tmp,fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+         eff_PhotonPt_AllOR_tmp->SetName("PhotonPt_efficiency_AllOR");
+         eff_PhotonPt_AllOR_tmp->SetTitle("PhotonPt_efficiency_AllOR");
+         HLT_PhotonPt_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_AllOR_tmp);
+         saveTrigger(eff_PhotonPt_AllOR_tmp,HLT_PhotonPt_efficiency_AllOR);
 
-          TGraphAsymmErrors* eff_PhotonPt_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_VBF_tmp[iPath],fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_PhotonPt_VBF_tmp->SetName(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_PhotonPt_VBF_tmp->SetTitle(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
+         TGraphAsymmErrors* eff_MET_AllOR_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_AllOR_tmp,fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+         eff_MET_AllOR_tmp->SetName("MET_efficiency_AllOR");
+         eff_MET_AllOR_tmp->SetTitle("MET_efficiency_AllOR");
+         HLT_MET_efficiency_AllOR = iFile->make<TGraphAsymmErrors>(*eff_MET_AllOR_tmp);
+         saveTrigger(eff_MET_AllOR_tmp,HLT_MET_efficiency_AllOR);
 
-          TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
-          eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
-          eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+         for(unsigned int iPath=0; iPath<triggerPaths_.size(); iPath++) 
+         {
+             TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+             eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+             eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-          TGraphAsymmErrors* eff_MET_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_VBF_tmp[iPath],fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_MET_VBF_tmp->SetName(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_MET_VBF_tmp->SetTitle(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());  
+             TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+             eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+             eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-          TGraphAsymmErrors* eff_Mjj_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_VBF_tmp[iPath],fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_Mjj_VBF_tmp->SetName(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_Mjj_VBF_tmp->SetTitle(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());   
-
-          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0) && isGoodTrigger(eff_Mjj_VBF_tmp,0.0))
-          {
-             HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
-             saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
-              
-             HLT_PhotonPt_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_VBF_tmp);
-             saveTrigger(eff_PhotonPt_VBF_tmp,HLT_PhotonPt_efficiency_VBF[iPath]);
-
-             HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
-             saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
-
-             HLT_MET_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_VBF_tmp);
-             saveTrigger(eff_MET_VBF_tmp,HLT_MET_efficiency_VBF[iPath]);
-
-             HLT_Mjj_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_Mjj_VBF_tmp);
-             saveTrigger(eff_Mjj_VBF_tmp,HLT_Mjj_efficiency_VBF[iPath]);
-          }
-          delete eff_PhotonPt_tmp;
-          delete eff_PhotonPt_VBF_tmp;
-          delete eff_MET_tmp;
-          delete eff_MET_VBF_tmp;
-          delete eff_Mjj_VBF_tmp;
+             if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
+             {
+                HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
+                saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+                HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
+                saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
+             }
+             delete eff_PhotonPt_tmp;
+             delete eff_MET_tmp;
+         }
       }
-   }
-   else if(triggerPaths_.at(0)=="ALL")
-   {
-      for(unsigned int iPath=0; iPath<HLT_pathsSize; iPath++) 
+      else if(triggerPaths_.at(0)=="ALL")
       {
-          TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
-          eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
-          eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
-
-          TGraphAsymmErrors* eff_PhotonPt_VBF_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_VBF_tmp[iPath],fixBins(HLT_PhotonPt_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_PhotonPt_VBF_tmp->SetName(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_PhotonPt_VBF_tmp->SetTitle(std::string("PhotonPt_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-
-          TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
-          eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
-          eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
-
-          TGraphAsymmErrors* eff_MET_VBF_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_VBF_tmp[iPath],fixBins(HLT_MET_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_MET_VBF_tmp->SetName(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_MET_VBF_tmp->SetTitle(std::string("MET_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-
-          TGraphAsymmErrors* eff_Mjj_VBF_tmp = new TGraphAsymmErrors(HLT_Mjj_efficiency_VBF_tmp[iPath],fixBins(HLT_Mjj_VBF_denum), "cl=0.683 b(1,1) mode");
-          eff_Mjj_VBF_tmp->SetName(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-          eff_Mjj_VBF_tmp->SetTitle(std::string("Mjj_efficiency_VBF_"+triggerPaths_.at(iPath)).c_str());
-
-          if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0) && isGoodTrigger(eff_Mjj_VBF_tmp,0.0))
+          for(unsigned int iPath=0; iPath<HLT_pathsSize; iPath++) 
           {
-             HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
-             saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+              TGraphAsymmErrors* eff_PhotonPt_tmp = new TGraphAsymmErrors(HLT_PhotonPt_efficiency_tmp[iPath],fixBins(HLT_PhotonPt_denum), "cl=0.683 b(1,1) mode");
+              eff_PhotonPt_tmp->SetName(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
+              eff_PhotonPt_tmp->SetTitle(std::string("PhotonPt_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-             HLT_PhotonPt_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_VBF_tmp);
-             saveTrigger(eff_PhotonPt_VBF_tmp,HLT_PhotonPt_efficiency_VBF[iPath]);
+              TGraphAsymmErrors* eff_MET_tmp = new TGraphAsymmErrors(HLT_MET_efficiency_tmp[iPath],fixBins(HLT_MET_denum), "cl=0.683 b(1,1) mode");
+              eff_MET_tmp->SetName(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
+              eff_MET_tmp->SetTitle(std::string("MET_efficiency_"+triggerPaths_.at(iPath)).c_str());
 
-             HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
-             saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
-
-             HLT_MET_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_VBF_tmp);
-             saveTrigger(eff_MET_VBF_tmp,HLT_MET_efficiency_VBF[iPath]);
-
-             HLT_Mjj_efficiency_VBF[iPath] = iFile->make<TGraphAsymmErrors>(*eff_Mjj_VBF_tmp);
-             saveTrigger(eff_Mjj_VBF_tmp,HLT_Mjj_efficiency_VBF[iPath]);
-          }
-          delete eff_PhotonPt_tmp;
-          delete eff_PhotonPt_VBF_tmp;
-          delete eff_MET_tmp;
-          delete eff_MET_VBF_tmp;
-          delete eff_Mjj_VBF_tmp;
+             if(isGoodTrigger(eff_PhotonPt_tmp,0.0) && isGoodTrigger(eff_MET_tmp,0.0))
+             {
+                cout << iPath << " - " << HLT_PhotonPt_efficiency_tmp[iPath]->GetName() << endl; 
+                HLT_PhotonPt_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_PhotonPt_tmp);
+                saveTrigger(eff_PhotonPt_tmp,HLT_PhotonPt_efficiency[iPath]);
+                HLT_MET_efficiency[iPath] = iFile->make<TGraphAsymmErrors>(*eff_MET_tmp);
+                saveTrigger(eff_MET_tmp,HLT_MET_efficiency[iPath]);
+             }
+             delete eff_PhotonPt_tmp;
+             delete eff_MET_tmp;
+         }
       }
    }
 
@@ -886,6 +767,41 @@ void FlashGXAnalysis::endJob()
 }
 
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+std::map<std::string,std::vector<double> > FlashGXAnalysis::mcInfos(string mcInfos_)
+{
+   map<string,vector<double> > infoMap_;
+   string name = "";
+   vector<double> vals;
+   string line;
+   cout << "mcInfos: " << mcInfos_ << endl;
+   ifstream input (mcInfos_.c_str());
+   std::string::size_type sz;
+   if(input.is_open())
+   {
+      while(getline(input,line))
+      {
+         if(line.find("#")!=std::string::npos) continue;
+         istringstream splitter(line);
+         vector<string> tokens{istream_iterator<string>{splitter},istream_iterator<string>{}};
+
+         vals.resize(tokens.size()-1);
+         if(tokens.size()>0) 
+            name = tokens.at(0);
+         if(tokens.size()>1) 
+            for(unsigned int ii=1; ii<tokens.size(); ii++)
+                vals[ii-1] = atof(tokens.at(ii).c_str());
+         else cout << "WARNING: " << name << " ---> Missing information!!" << endl; 
+
+         infoMap_.insert(std::pair<string,vector<double> >(name,vals));
+         name="";
+         vals.clear();
+      }
+      input.close();
+   }
+   
+   return infoMap_;
+}
+
 double FlashGXAnalysis::ptWeight(Handle<View<reco::GenParticle> > genParticles)
 {
    double ptWeight=1.;
@@ -911,6 +827,27 @@ double FlashGXAnalysis::ptWeight(Handle<View<reco::GenParticle> > genParticles)
    }  
 
    return ptWeight;
+}
+
+double FlashGXAnalysis::puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo)
+{
+   double puWeight = 1.;
+   /*double truePu = -1.;
+   double obsPu = -1.;
+
+   std::vector<PileupSummaryInfo>::const_iterator puInTime = puInfo->end();   
+   for(std::vector<PileupSummaryInfo>::const_iterator pu = puInfo->begin(); pu != puInfo->end() ; ++pu) 
+   {     
+       if(pu->getBunchCrossing()==0)
+       {
+          truePu = pu->getTrueNumInteractions();
+          obsPu  = pu->getPU_NumInteractions();
+          break;
+       }
+       
+   }*/
+   
+   return puWeight;
 }
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool FlashGXAnalysis::getHLTResults(edm::Handle<edm::TriggerResults> trigResults,const edm::TriggerNames& trigNames,std::string path)
