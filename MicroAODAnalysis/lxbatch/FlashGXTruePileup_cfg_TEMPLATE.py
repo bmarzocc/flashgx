@@ -28,21 +28,6 @@ process.TFileService = cms.Service("TFileService",
     fileName = cms.string('OUTPUTNAME.root')
 )
 
-import HLTrigger.HLTfilters.hltHighLevel_cfi 
-process.HLTfilter = HLTrigger.HLTfilters.hltHighLevel_cfi.hltHighLevel.clone(
-    HLTPaths = ["HLT_Photon50_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3_PFMET50_v*",
-                "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3_v*",
-                "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ600DEta3_v*",
-                #"HLT_DiJet110_35_Mjj650_PFMET110_v*",
-                #"HLT_DiJet110_35_Mjj650_PFMET120_v*",
-                #"HLT_DiJet110_35_Mjj650_PFMET130_v*"
-               ],
-    #throw = True,
-    andOr = cms.bool(True)
-)
-
 process.p = cms.Path(
-    process.HLTfilter*
-    process.flashggUnpackedJets*
-    process.flashgxanalysis
+    process.flashgxtruepileup
 )

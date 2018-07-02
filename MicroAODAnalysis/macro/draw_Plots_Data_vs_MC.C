@@ -25,7 +25,7 @@
 
 using namespace std;
 
-void drawTH1dataMCstack(TH1D* h1, vector<TH1D*> vecMC, 
+void drawTH1dataMCstack(TH1D* h1,TH1D* h2, vector<TH1D*> vecMC, 
 			const string& xAxisNameTmp, const string& yAxisName, const string& canvasName, 
 			const string& outputDIR, 
 			const string& legEntry1, const vector<string>& vecLegEntryMC, 
@@ -33,7 +33,6 @@ void drawTH1dataMCstack(TH1D* h1, vector<TH1D*> vecMC,
 			const Bool_t normalizeMCToData,
 			const Int_t draw_both0_noLog1_onlyLog2,
 			const Double_t minFractionToBeInLegend,
-			const vector<Int_t> vecMCcolors,
 			const Int_t fillStyle
 			);
 
@@ -54,8 +53,27 @@ void draw_Plots_Data_vs_MC() {
   TObject* obj ;
   TList* list;
 
-  // inputs Sig
-  TFile* inFile_sig = TFile::Open("../FlashGXAnalysis_VBFH.root");
+  // inputs
+  TFile* inFile_data = TFile::Open("/eos/cms/store/group/phys_higgs/HiggsExo/HToGX/bmarzocc/flashgg/RunIIFall17_DarkPhoton_v4/prod-uAOD-300-66-g644fd526/SinglePhoton_ntuples.root");
+  TDirectory* dir_data = inFile_data->GetDirectory("flashgxanalysis");
+  vector<TH1D*> histos_data;
+ 
+  list = dir_data->GetListOfKeys() ;
+  if (!list) { printf("<E> No keys found in file\n") ; exit(1) ; }
+  TIter next_data(list) ;
+  
+  while ( (key = (TKey*)next_data()) ) {
+    obj = key->ReadObj() ;
+    if (    (strcmp(obj->IsA()->GetName(),"TProfile")==0)
+         || (obj->InheritsFrom("TH2"))
+	 || (obj->InheritsFrom("TH1")) 
+       ) {
+      h_tmp = (TH1D*)inFile_data->Get((string("flashgxanalysis/")+string(obj->GetName())).c_str());
+      histos_data.push_back(h_tmp);
+    }
+  }
+
+  TFile* inFile_sig = TFile::Open("/eos/cms/store/group/phys_higgs/HiggsExo/HToGX/bmarzocc/flashgg/RunIIFall17_DarkPhoton_v2/prod-uAOD-300-65-g97bd5bfd/VBFHToGX_M125_13TeV_amcatnlo_pythia8_RunIIFall17_PreMixing_MicroAOD_ntuples.root");
   TDirectory* dir_sig = inFile_sig->GetDirectory("flashgxanalysis");
   vector<TH1D*> histos_sig;
  
@@ -229,56 +247,68 @@ void draw_Plots_Data_vs_MC() {
   gROOT->SetBatch(kTRUE);
   
   vector<string> legendEntriesMC;
-  legendEntriesMC.resize(8);
-  legendEntriesMC[0] = "WJets";
+  legendEntriesMC.resize(7);
+  legendEntriesMC[0] = "WJets"; 
   legendEntriesMC[1] = "W#rightarrow e#nu";
   legendEntriesMC[2] = "ZJets";
   legendEntriesMC[3] = "W/Z + GGJets";
   legendEntriesMC[4] = "DYJets";
   legendEntriesMC[5] = "DiPhotonJets";
   legendEntriesMC[6] = "GJets";
-  legendEntriesMC[7] = "QCD";
+  //legendEntriesMC[7] = "QCD";
 
   vector<TH1D*> vecMC;
-  vector<Int_t> vecMCcolors = {kCyan, kViolet, kBlue, kGreen+2, kYellow, kGreen, kRed, kGray};
-
+ 
   for(unsigned int ii=0; ii<histos_sig.size(); ii++)
   {
-      vecMC.resize(8);
+
+      if(string(histos_WJets.at(ii)->GetName()).find("h_Efficiency")!=std::string::npos) continue;
+
+      string xTitle = histos_WJets.at(ii)->GetName();
+      xTitle.erase(0,2);
+      if(xTitle.find("_Final")!=std::string::npos) xTitle.erase(xTitle.end()-6,xTitle.end());
+      if(xTitle.find("_noCut")!=std::string::npos) xTitle.erase(xTitle.end()-6,xTitle.end());
+      if(xTitle.find("Pt")!=std::string::npos) xTitle = xTitle + string(" (GeV)");
+      if(xTitle.find("MtMETPho")!=std::string::npos) xTitle = xTitle + string(" (GeV)");
+      if(xTitle.find("invMass")!=std::string::npos) xTitle = xTitle + string(" (GeV)");
+
+      vecMC.resize(7);
+
       vecMC[0] = histos_WJets.at(ii);
+      vecMC[0]->SetFillColor(kRed);
       vecMC[1] = histos_WToENu.at(ii);
+      vecMC[1]->SetFillColor(kBlue);
       vecMC[2] = histos_ZJets.at(ii);
+      vecMC[2]->SetFillColor(kCyan+1);
       vecMC[3] = histos_VGGJets.at(ii);
+      vecMC[3]->SetFillColor(kYellow);
       vecMC[4] = histos_DYJets.at(ii);
+      vecMC[4]->SetFillColor(kGreen);
       vecMC[5] = histos_DiPhotonJetsBox.at(ii);
+      vecMC[5]->SetFillColor(kOrange+1);
       vecMC[6] = histos_GJet.at(ii);
-      vecMC[7] = histos_QCD.at(ii);
-
-    
-      TH1D* h1 = (TH1D*)histos_sig.at(ii)->Clone();
-      //TH1D* h1 = (TH1D*)histos_WJets.at(ii)->Clone();
-      //h1->Add(vecMC[1]);
-      //h1->Add(vecMC[2]);
-      //h1->Add(vecMC[3]);
-      //h1->Add(vecMC[4]);
-      //h1->Add(vecMC[5]);
-      //h1->Add(vecMC[6]);
-      //h1->Add(vecMC[7]);
+      vecMC[6]->SetFillColor(kViolet);
+      //vecMC[7] = histos_QCD.at(ii);
+      //vecMC[7]->SetFillColor(kGreen+2);
  
-      drawTH1dataMCstack(h1,vecMC,
-			 vecMC.at(0)->GetXaxis()->GetTitle(),vecMC.at(0)->GetYaxis()->GetTitle(),histos_WJets.at(ii)->GetName(),
-                         "","Signal",legendEntriesMC,"Signal/MC",40,2,true,1,0.0,vecMCcolors,3001);
+      TH1D* h1 = (TH1D*)histos_data.at(ii)->Clone();   
+      TH1D* h2 = (TH1D*)histos_sig.at(ii)->Clone();
+      
+ 
+      drawTH1dataMCstack(h1,h2,vecMC,
+			 xTitle.c_str(),vecMC.at(0)->GetYaxis()->GetTitle(),histos_WJets.at(ii)->GetName(),
+                         "","Data",legendEntriesMC,"Data/MC",7.7,2,true,1,0.0,3001);
 
-      drawTH1dataMCstack(h1,vecMC,
-			 vecMC.at(0)->GetXaxis()->GetTitle(),vecMC.at(0)->GetYaxis()->GetTitle(),histos_WJets.at(ii)->GetName(),
-                         "","Signal",legendEntriesMC,"Signal/MC",40,2,true,0,0.0,vecMCcolors,3001);
+      drawTH1dataMCstack(h1,h2,vecMC,
+			 xTitle.c_str(),vecMC.at(0)->GetYaxis()->GetTitle(),histos_WJets.at(ii)->GetName(),
+                         "","Data",legendEntriesMC,"Data/MC",7.7,2,true,0,0.0,3001);
 
       vecMC.clear();      
   }
   
 }
 
-void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {}, 
+void drawTH1dataMCstack(TH1D* h1 = NULL, TH1D* h2 = NULL, vector<TH1D*> vecMC = {}, 
 			const string& xAxisNameTmp = "", const string& yAxisName = "Events", const string& canvasName = "default", 
 			const string& outputDIR = "./", 
 			const string& legEntry1 = "data", const vector<string>& vecLegEntryMC = {""}, 
@@ -286,7 +316,6 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
 			const Bool_t normalizeMCToData = false,
 			const Int_t draw_both0_noLog1_onlyLog2 = 0,
 			const Double_t minFractionToBeInLegend = 0.001,
-			const vector<Int_t> vecMCcolors = {kCyan, kViolet, kBlue, kRed, kYellow, kGreen, kOrange+1, kCyan+2, kGreen+2, kGray},
 			const Int_t fillStyle = 3001
 			)
 {
@@ -316,12 +345,7 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
   
   //Int_t colorList[] = {kCyan, kViolet, kBlue, kRed, kYellow, kGreen, kOrange+1, kCyan+2, kGreen+2, kGray}; 
   // the first color is for the main object. This array may contain more values than vecMC.size()
-  vector<Int_t> histColor;
-  for (UInt_t i = 0; i < vecMC.size(); i++) {   // now color are assigned in reverse order (the main contribution is the last object in the sample array)
-    //histColor.push_back(colorList[i]);
-    histColor.push_back(vecMCcolors[i]);
-  }
-
+  
   Double_t dataNorm = h1->Integral();
   Double_t stackNorm = 0.0; 
 
@@ -333,18 +357,26 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
 
   THStack* hMCstack = new THStack("hMCstack","");
   for (UInt_t j = 0; j < vecMC.size(); j++) {
-    vecMC[j]->SetFillColor(histColor[j]);
+    float norm = 7742.163000/40000.;
+    if(!normalizeMCToData) vecMC[j]->Scale(norm);
     vecMC[j]->SetFillStyle(fillStyle);
-    myRebinHisto(vecMC[j],rebinFactor);
-    //if (normalizeMCToData) vecMC[j]->Scale(dataNorm/stackNorm);
-    hMCstack->Add(vecMC[(UInt_t) vecMC.size() - j -1]);  // add last element as the first one (last element added in stack goes on top)
+    if(string(vecMC[j]->GetName()).find("nJets")==std::string::npos && string(vecMC[j]->GetName()).find("nVtx")==std::string::npos && string(vecMC[j]->GetName()).find("numberOfEvents")==std::string::npos && string(vecMC[j]->GetName()).find("h_Efficiency_num")==std::string::npos && string(vecMC[j]->GetName()).find("h_Efficiency_denum")==std::string::npos) myRebinHisto(vecMC[j],rebinFactor);
+    if(normalizeMCToData) vecMC[j]->Scale(dataNorm/stackNorm);
+    hMCstack->Add(vecMC[int(vecMC.size())-j-1]);  // add last element as the first one (last element added in stack goes on top)
   }
-  TH1D* stackCopy = (TH1D*) hMCstack->GetStack()->Last(); // used to make ratioplot without affecting the plot and setting maximum
+
+  cout << "N-Histos: " << hMCstack->GetNhists() << endl;
+
+  THStack* hMCstack2 = (THStack*)hMCstack->Clone();
+  TH1D* stackCopy = (TH1D*) hMCstack2->GetStack()->Last(); // used to make ratioplot without affecting the plot and setting maximum
 
   if (h1 == NULL) h1 = (TH1D*) stackCopy->Clone("pseudoData");
-  else myRebinHisto(h1,rebinFactor);
+  if(string(h1->GetName()).find("nJets")==std::string::npos && string(h1->GetName()).find("nVtx")==std::string::npos && string(h1->GetName()).find("numberOfEvents")==std::string::npos && string(h1->GetName()).find("h_Efficiency_num")==std::string::npos && string(h1->GetName()).find("h_Efficiency_denum")==std::string::npos) myRebinHisto(h1,rebinFactor);
 
-  if (normalizeMCToData) h1->Scale(stackNorm/dataNorm*0.5);
+  if (h2 == NULL) h2 = (TH1D*) stackCopy->Clone("pseudoData");
+  if(string(h2->GetName()).find("nJets")==std::string::npos && string(h2->GetName()).find("nVtx")==std::string::npos && string(h2->GetName()).find("numberOfEvents")==std::string::npos && string(h2->GetName()).find("h_Efficiency_num")==std::string::npos && string(h2->GetName()).find("h_Efficiency_denum")==std::string::npos) myRebinHisto(h2,rebinFactor);
+
+  if (normalizeMCToData) h2->Scale(dataNorm/h2->Integral());
 
   h1->SetStats(0);
 
@@ -370,11 +402,19 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
   frame->GetXaxis()->SetLabelSize(0.04);
   frame->SetStats(0);
 
-  h1->SetLineColor(kRed);
-  h1->SetMarkerColor(kRed);
+  h1->SetLineColor(kBlack);
+  h1->SetMarkerColor(kBlack);
   h1->SetMarkerStyle(20);
-  //h1->SetMarkerSize(2);
-  h1->SetLineWidth(2);
+  h1->SetMarkerSize(1);
+
+  h2->SetLineColor(kRed);
+  h2->SetMarkerColor(kRed);
+  h2->SetMarkerStyle(20);
+  //h2->SetMarkerSize(2);
+  h2->SetLineWidth(2);
+
+  stackCopy->SetFillColor(kGray+1);
+  stackCopy->SetMarkerStyle(0);
 
   h1->GetXaxis()->SetLabelSize(0);
   h1->GetXaxis()->SetTitle(0);
@@ -386,15 +426,18 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
   h1->GetYaxis()->SetRangeUser(0.0, max(h1->GetMaximum(),stackCopy->GetMaximum()) * 1.2);
   if (setXAxisRangeFromUser) h1->GetXaxis()->SetRangeUser(xmin,xmax);
   hMCstack->Draw("HIST");
-  h1->Draw("HIST");
+  if(string(h1->GetName()).find("Final")==std::string::npos) h1->Draw("EP");
   hMCstack->Draw("HIST SAME");
-  h1->Draw("HIST SAME");
+  stackCopy->Draw("e2same");
+  //h2->Draw("HIST SAME");
+  if(string(h1->GetName()).find("Final")==std::string::npos) h1->Draw("EP SAME");
 
   TLegend leg (0.65,0.7,0.95,0.9);
   leg.SetFillColor(0);
   leg.SetFillStyle(0);
   leg.SetBorderSize(0);
   leg.AddEntry(h1,legEntry1.c_str(),"PLE");
+  leg.AddEntry(h2,"Signal","L");
   for (UInt_t i = 0; i < vecMC.size(); i++) {
     if (vecMC[i]->Integral()/stackCopy->Integral() > minFractionToBeInLegend)
       leg.AddEntry(vecMC[i],vecLegEntryMC[i].c_str(),"F");
@@ -435,14 +478,14 @@ void drawTH1dataMCstack(TH1D* h1 = NULL, vector<TH1D*> vecMC = {},
   den->SetMarkerStyle(0);
   frame->Draw();
   ratio->SetMarkerSize(0.85);
-  ratio->Draw("EPsame");
+  if(string(h1->GetName()).find("Final")==std::string::npos) ratio->Draw("EPsame");
   den->Draw("E2same");
 
   TF1* line = new TF1("horiz_line","1",ratio->GetXaxis()->GetBinLowEdge(1),ratio->GetXaxis()->GetBinLowEdge(ratio->GetNbinsX()+1));
   line->SetLineColor(kRed);
   line->SetLineWidth(2);
   line->Draw("Lsame");
-  ratio->Draw("EPsame");
+  if(string(h1->GetName()).find("Final")==std::string::npos) ratio->Draw("EPsame");
   pad2->RedrawAxis("sameaxis");
 
   // Calculate chi2                                                                                        
@@ -540,3 +583,4 @@ void myRebinHisto(TH1 *h, const Int_t rebinFactor = 1) {
   }
 
 }
+

@@ -29,7 +29,6 @@ $LISTOFSamples    = $User_Preferences{"LISTOFSamples"} ;
 $JOBCfgTemplate   = $User_Preferences{"JOBCfgTemplate"} ;
 $JOBCfiTemplate   = $User_Preferences{"JOBCfiTemplate"} ;
 $OUTPUTSAVEPath   = $User_Preferences{"OUTPUTSAVEPath"} ;
-$SCRAM_ARCH       = $User_Preferences{"SCRAM_ARCH"} ;
 $JOBModulo        = $User_Preferences{"JOBModulo"} ;
 $QUEUE            = $User_Preferences{"QUEUE"};
 
@@ -41,7 +40,6 @@ print "JOBCfgTemplate = "   .$JOBCfgTemplate."\n" ;
 print "JOBCfiTemplate = "   .$JOBCfiTemplate."\n" ;
 print "OUTPUTSAVEPath = "   .$OUTPUTSAVEPath."\n" ;
 print "JOBModulo = "        .$JOBModulo."\n" ;
-print "SCRAM_ARCH = "       .$SCRAM_ARCH."\n" ;
 print "QUEUE  = "           .$QUEUE."\n" ;
 
 
@@ -73,7 +71,12 @@ while (my $line = <LISTOFSamples>)
 
  system ("rm -r ".$JOBS_dir."\n") ;
  system ("mkdir ".$JOBS_dir."\n") ;
- system ("rm -rf ".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples");
+
+ if(index($JOBCfiTemplate,"FlashGXAnalysis") != -1)    
+ {
+    print "Removing: /eos/cms/".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples\n";
+    system ("rm -rf /eos/cms/".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples");
+ }
     
  
  $LISTOFFiles = "./list_.txt" ;
@@ -111,6 +114,10 @@ while (my $line = <LISTOFSamples>)
 	system ("mkdir ".$jobDir." \n") ;
 
         system ("cp mc_infos.dat ".$jobDir." \n") ;
+        system ("cp ../data/GluGluHToGX_pt_reweighting.root ".$jobDir." \n") ;
+        system ("cp ../data/VBFHToGX_pt_reweighting.root ".$jobDir." \n") ;
+        system ("cp ../data/2017_HLT_Photon_EOY2017ReRecoV1_TruePU_69p2mb.root ".$jobDir." \n") ;
+        system ("cp ../data/2017_HLT_DiJet_EOY2017ReRecoV1_TruePU_69p2mb.root ".$jobDir." \n") ;
     
 	$tempBjob = $jobDir."/bjob_".$jobIt.".sh" ;
 	$command = "touch ".$tempBjob ;
@@ -152,17 +159,33 @@ while (my $line = <LISTOFSamples>)
 
 	$tempo3 = "tempo3" ;
 	system ("cat ".$tempo2." | sed -e s%APICE%\\'%g > ".$tempo3) ;
+ 
+        my $find = "_TEMPLATE.py";
+        my $replace = ".py";
+       
+        $JOBCfiFile = $JOBCfiTemplate;
+        $JOBCfiFile =~ s/$find/$replace/g;
+        $JOBCfiFilev2 = substr($JOBCfiFile,0,-3);
+        #print $JOBCfiFile."\n";
+        
+        $JOBCfgFile = $JOBCfgTemplate;
+        $JOBCfgFile =~ s/$find/$replace/g;
+        #print $JOBCfgFile."\n";
 
-        $JOBCfiFile = "FlashGXAnalysis_cfi" ;
         $tempo4 = "tempo4" ;
-	system ("cat ".$tempo3." | sed -e s%NAMECfi%".$JOBCfiFile."%g > ".$tempo4) ;
-        $JOBCfgFile = $jobDir."/FlashGXAnalysis_cfg.py" ;
+
+	system ("cat ".$tempo3." | sed -e s%NAMECfi%".$JOBCfiFilev2."%g > ".$tempo4) ;
+        $JOBCfgFile = $jobDir."/".$JOBCfgFile ;
         system ("mv ".$tempo4." ".$JOBCfgFile) ;
         
         $tempo5 = "tempo5" ;
-	system ("cat ".$JOBCfiTemplate." | sed -e s%NAMESample%".$JOBS_dir."%g > ".$tempo5) ;
-        system ("mv ".$tempo5." ".$jobDir."/".$JOBCfiFile.".py") ;
+	system ("cat ".$JOBCfiTemplate." | sed -e s%NAMESample%".$JOBS_dir."%g > ".$tempo5) ; 
+          
+        $pileupFile = "/eos/cms/".$OUTPUTSAVEPath."/".$JOBS_dir."_truepileup.root";
+        $tempo6 = "tempo6" ;
+	system ("cat ".$tempo5." | sed -e s%MCPILEUP%".$pileupFile."%g > ".$tempo6) ;
 
+        system ("mv ".$tempo6." ".$jobDir."/".$JOBCfiFile) ;
         system ("rm tempo*") ;    
     
   
@@ -183,16 +206,29 @@ while (my $line = <LISTOFSamples>)
     
 	$command = "eval `scramv1 ru -csh`" ;
 	print SAMPLEJOBFILE $command."\n";
-  
-	$command = "eos mkdir ".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples";
+     
+        if(index($JOBCfiFile,"FlashGXTruePileup") != -1)    
+        {
+	   $command = "eos mkdir ".$OUTPUTSAVEPath."/".$JOBS_dir."_truepileup";
+	   print SAMPLEJOBFILE $command."\n";
+        }else{
+           $command = "eos mkdir ".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples";
+	   print SAMPLEJOBFILE $command."\n";
+        }
+
+	$command = "cmsRun ".$JOBCfgFile;
 	print SAMPLEJOBFILE $command."\n";
 
-	$command = "cmsRun FlashGXAnalysis_cfg.py";
-	print SAMPLEJOBFILE $command."\n";
-
-	$command = "eos cp ".$JOBS_dir."_".$jobIt.".root root://eoscms.cern.ch/".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples/";
-	print SAMPLEJOBFILE $command."\n";
         
+        if(index($JOBCfiFile,"FlashGXTruePileup") != -1)    
+        {
+	   $command = "eos cp ".$JOBS_dir."_".$jobIt.".root root://eoscms.cern.ch/".$OUTPUTSAVEPath."/".$JOBS_dir."_truepileup/";
+	   print SAMPLEJOBFILE $command."\n";
+        }else{
+           $command = "eos cp ".$JOBS_dir."_".$jobIt.".root root://eoscms.cern.ch/".$OUTPUTSAVEPath."/".$JOBS_dir."_ntuples/";
+	   print SAMPLEJOBFILE $command."\n";
+        }
+
         $command = "rm *.root";
 	print SAMPLEJOBFILE $command."\n";
 
@@ -207,7 +243,7 @@ while (my $line = <LISTOFSamples>)
  }
 
  system ("rm ".$LISTOFFiles) ;
- system ("sh lancia.sh");
+ #system ("sh lancia.sh");
  system ("rm lancia.sh");
 }
 

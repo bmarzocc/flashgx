@@ -34,7 +34,7 @@
 #include "FWCore/FWLite/interface/FWLiteEnabler.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/PythonParameterSet/interface/MakeParameterSets.h"
-#include "PhysicsTools/Utilities/macros/setTDRStyle.C"
+//#include "PhysicsTools/Utilities/macros/setTDRStyle.C"
 
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "FWCore/Common/interface/TriggerNames.h"
@@ -55,6 +55,7 @@
 
 #include "TSystem.h"
 #include "TFile.h"
+#include "TTree.h"
 #include "TProfile.h"
 #include "TGraphErrors.h"
 #include "TGraph.h"
@@ -82,6 +83,8 @@
 #include <Math/VectorUtil.h>
 //#include <boost/tokenizer.hpp>
 
+#define MAXVEC 20
+
 typedef std::vector<edm::Handle<edm::View<flashgg::Jet> > > JetCollectionVector;
 
 class FlashGXAnalysis : public edm::EDAnalyzer
@@ -99,11 +102,12 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       // ----------additional functions-------------------
       std::map<std::string,std::vector<double> > mcInfos(string mcInfos_);
       double ptWeight(Handle<View<reco::GenParticle> > genParticles);
-      double puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo);
+      double puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo, TH1D* mcPuHist, TH1D* dataPuHist);
       bool getHLTResults(edm::Handle<edm::TriggerResults> trigResults,const edm::TriggerNames& trigNames,std::string path);
       bool isGoodPhotonHgg(edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, double rho); 
       bool isGoodPhotonCutBased(edm::Ptr<flashgg::Photon> ipho, double rho);
       bool isGoodPhotonMVA(edm::Ptr<flashgg::Photon> ipho);
+      std::pair<int,int> selectedPhotonIndex(Handle<View<flashgg::Photon> > photons,edm::Ptr<reco::Vertex> vtx,double rho);
       bool isInEcal(edm::Ptr<flashgg::Photon> ipho);
       bool isGoodTrigger(TGraphAsymmErrors* efficiency, double threshold);
       TH1D* fixBins(TH1D* h);
@@ -113,7 +117,9 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       double computeMtMETPhoton(edm::Ptr<flashgg::Photon> ipho, edm::Ptr<flashgg::Met> met);
       std::vector<reco::Candidate::LorentzVector> goodJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, int iColl);
       std::vector<reco::Candidate::LorentzVector> vbfJets(JetCollectionVector Jets, edm::Ptr<flashgg::Photon> pho, edm::Ptr<reco::Vertex> vtx, int iColl);
-      
+      void setTree(TTree *outTree);
+      void fillTree(TTree *outTree,int irun,int ilumi,long int ievent,long int ibx,double wTot,double rho,Handle<View<reco::Vertex> > vertices,Handle<View<flashgg::Met> > mets,Handle<View<flashgg::Photon> > photons, int selPhoton_pos, JetCollectionVector Jets, std::vector<reco::Candidate::LorentzVector>* vbfJets, int iColl);
+
       edm::EDGetTokenT<GenEventInfoProduct> genInfoToken_;  
       edm::EDGetTokenT<std::vector<PileupSummaryInfo> > puInfoToken_;
       edm::EDGetTokenT<edm::TriggerResults> triggerToken_;  
@@ -130,6 +136,14 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       std::string sampleName_;
       std::string mcInfos_;
       std::map<std::string,std::vector<double> > infos_;
+
+      TFile* mcPuFile_;
+      std::string mcPuPath_;
+      TH1D* mcPuHist_;
+
+      TFile* dataPuFile_;
+      std::string dataPuPath_;
+      TH1D* dataPuHist_;
 
       std::string higgsPtReweighting_;
       TH1D* h_higgsPtReweighting;
@@ -214,6 +228,12 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       
       TH1D *h_numberOfEvents;
       TH1D *h_Efficiency;
+      TH1D *h_Efficiency_num;
+      TH1D *h_Efficiency_denum;
+
+      TH1D *h_nVtx;
+      TH1D *h_dataPileup;
+      TH1D *h_mcPileup;
 
       TH1D *h_Pho_Energy_noCut;
       TH1D *h_Pho_Pt_noCut;
@@ -281,6 +301,8 @@ class FlashGXAnalysis : public edm::EDAnalyzer
 
       TH1D *h_VBFjets_invMass;
       TH1D *h_VBFjets_dEta;
+      TH1D *h_VBFjets_invMass_Final;
+      TH1D *h_VBFjets_dEta_Final;
       
       unsigned int HLT_pathsSize = 0;
       std::vector<std::string> HLT_Names; 
@@ -305,6 +327,47 @@ class FlashGXAnalysis : public edm::EDAnalyzer
       double nTotSelected_step5;
       double nTotSelected_step6;
       double nTotSelected_step7;
+
+      TTree *outTree; 
+      int run;
+      int lumi;
+      long int event; 
+      long int bx;
+      double weight;
+      int nVtx;
+      double MET_pt; 
+      double MET_phi; 
+      double deltaPhi_MET_photon[MAXVEC]; 
+      double Mt_MET_photon[MAXVEC]; 
+      double photon_pt[MAXVEC]; 
+      double photon_energy[MAXVEC]; 
+      double photon_phi[MAXVEC]; 
+      double photon_r9[MAXVEC]; 
+      double photon_eta[MAXVEC]; 
+      double photon_egMVA[MAXVEC]; 
+      bool photon_passElectronVeto[MAXVEC]; 
+      bool photon_passCutID[MAXVEC];
+      bool photon_passHggID[MAXVEC]; 
+      bool photon_passMVAID[MAXVEC]; 
+      int selPhoton_index;
+      double jet_pt[MAXVEC]; 
+      double jet_energy[MAXVEC]; 
+      double jet_phi[MAXVEC]; 
+      double jet_eta[MAXVEC];
+      double deltaPhi_jet_photon[MAXVEC]; 
+      double deltaEta_jet_photon[MAXVEC]; 
+      double deltaR_jet_photon[MAXVEC];
+      int n_jets; 
+      double vbfjet_pt[MAXVEC]; 
+      double vbfjet_energy[MAXVEC]; 
+      double vbfjet_phi[MAXVEC]; 
+      double vbfjet_eta[MAXVEC];
+      double deltaPhi_vbfjet_photon[MAXVEC]; 
+      double deltaEta_vbfjet_photon[MAXVEC]; 
+      double deltaR_vbfjet_photon[MAXVEC];
+      int n_vbfjets; 
+      double deltaEta_selVbfJets;  
+      double invMass_selVbfJets;  
 };
 
 #endif

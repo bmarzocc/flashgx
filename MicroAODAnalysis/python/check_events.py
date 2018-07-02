@@ -12,13 +12,13 @@ def hadd(ls_dump):
          command = os.system("hadd -f "+str(x)+".root "+str(x)+"/*.root")
 
 def usage():
-    print "Usage: python hadd_samples.py --dir=[dir]  (--pileup)"
+    print "Usage: python check_events.py --file=[file]"
 
 #---------------------------------------------------------- MAIN ----------------------------------------------------------
 def main():
     
  try:
-     opts, args = getopt.getopt(sys.argv[1:], "", ["dir=","pileup","help"])
+     opts, args = getopt.getopt(sys.argv[1:], "", ["file=","help"])
 
  except getopt.GetoptError:
      #* print help information and exit:*
@@ -26,16 +26,13 @@ def main():
      sys.exit(2)
 
 
- dir = ""
- pileup = False
+ file = ""
  help = False
 
  for opt, arg in opts:
     
-     if opt in ("--dir"):
-        dir = arg
-     if opt in ("--pileup"):
-        pileup = True
+     if opt in ("--file"):
+       file = arg
      if opt in ("--help"):
         help = True     
 
@@ -43,22 +40,26 @@ def main():
    usage()
    sys.exit(2)
 
- if(dir == ""):
+ if(file == ""):
    usage()
    sys.exit(2)
 
- if(dir != ""):
-   print "dir = ",dir
- if(pileup == True):
-   print "pileup = True"
+ if(file != ""):
+   print "file = ",file
 
- if(pileup == False):
-    command = os.system("ls -d /eos/cms"+str(dir)+"/*_ntuples > ls_dump")
- else:
-    command = os.system("ls -d /eos/cms"+str(dir)+"/*_truepileup > ls_dump")
- 
- hadd("ls_dump")
- command = os.system("rm ls_dump")
+ run = 0
+ lumi = 0
+ event = 0
+
+ inFile = TFile.Open(file)
+ tree = inFile.Get("flashgxanalysis/FlashGXTree")
+ tree.SetBranchAddress("run",run)
+ tree.SetBranchAddress("lumi",lumi)
+ tree.SetBranchAddress("event",event)
+
+ for i in range(0, tree.GetEntries()):
+    tree.GetEntry(i)
+    print run,lumi,event
 
 if __name__ == "__main__":
     main()

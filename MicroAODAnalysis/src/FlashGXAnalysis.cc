@@ -48,6 +48,7 @@
 
 #include "TSystem.h"
 #include "TFile.h"
+#include "TTree.h"
 #include "TProfile.h"
 #include "TGraphErrors.h"
 #include "TGraph.h"
@@ -111,10 +112,34 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   sampleType_                       = iConfig.getParameter<string>("sampleType");
   sampleName_                       = iConfig.getParameter<string>("sampleName");
   mcInfos_                          = iConfig.getParameter<string>("mcInfos");
-  infos_ = mcInfos(mcInfos_);
-  cout <<"--->MC infos: " << sampleName_ << " - " << infos_[sampleName_][0] << " - " << infos_[sampleName_][1] << " - " << infos_[sampleName_][2] << " - " << infos_[sampleName_][3] << " - " << infos_[sampleName_][4] << " - " << infos_[sampleName_][5] << endl; 
-   
+  if(sampleType_!="data")
+  {
+     infos_ = mcInfos(mcInfos_);
+     cout <<"--->MC infos: " << sampleName_ << " - " << infos_[sampleName_][0] << " - " << infos_[sampleName_][1] << " - " << infos_[sampleName_][2] << " - " << infos_[sampleName_][3] << " - " << infos_[sampleName_][4] << " - " << infos_[sampleName_][5] << endl; 
+  }
+
+  mcPuPath_                         = iConfig.getParameter<string>("mcPuPath");
+  dataPuPath_                       = iConfig.getParameter<string>("dataPuPath");
+ 
+  if(sampleType_ != "data")
+  {
+     mcPuFile_ = TFile::Open(mcPuPath_.c_str());
+     mcPuHist_ = (TH1D*)mcPuFile_->Get("flashgxtruepileup/h_TruePileup");
+
+     dataPuFile_ = TFile::Open(dataPuPath_.c_str());
+     dataPuHist_ = (TH1D*)dataPuFile_->Get("pileup");
+     
+     mcPuHist_->Scale(1./mcPuHist_->Integral());
+     dataPuHist_->Scale(1./dataPuHist_->Integral());
+  }
+
   higgsPtReweighting_               = iConfig.getParameter<string>("higgsPtReweighting");
+
+  if(sampleType_=="signal")
+  {
+     TFile* higgsPtFile = TFile::Open(higgsPtReweighting_.c_str()); 
+     h_higgsPtReweighting = (TH1D*)higgsPtFile->Get("h_Higgs_pt_reweighting");
+  }
 
   triggerPaths_                     = iConfig.getParameter<vector<string> >("triggerPaths");
 
@@ -191,8 +216,25 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   pujid_wp_pt_bin_4_                = iConfig.getParameter<std::vector<double> >("pujidWpPtBin4");
 
   //output file and historgrams
+  outTree                 = iFile->make<TTree>("FlashGXTree","FlashGXTree");
+  setTree(outTree);
+  
   h_numberOfEvents        = iFile->make<TH1D>("h_numberOfEvents","h_numberOfEvents",10,-0.5,9.5);
   h_Efficiency            = iFile->make<TH1D>("h_Efficiency","h_Efficiency",10,-0.5,9.5);
+  h_Efficiency_num        = iFile->make<TH1D>("h_Efficiency_num","h_Efficiency_num",10,-0.5,9.5);
+  h_Efficiency_denum      = iFile->make<TH1D>("h_Efficiency_denum","h_Efficiency_denum",10,-0.5,9.5);
+
+  h_nVtx                  = iFile->make<TH1D>("h_nVtx","h_nVtx",100,-0.5,99.5);
+  h_mcPileup            = iFile->make<TH1D>("h_mcPileup","h_mcPileup",100,-0.5,99.5);
+  h_dataPileup            = iFile->make<TH1D>("h_dataPileup","h_dataPileup",100,-0.5,99.5);
+  if(sampleType_ != "data")
+  {
+     for(int bin=1; bin<=mcPuHist_->GetNbinsX(); bin++)
+         h_mcPileup->SetBinContent(bin,mcPuHist_->GetBinContent(bin));
+  
+     for(int bin=1; bin<=dataPuHist_->GetNbinsX(); bin++)
+         h_dataPileup->SetBinContent(bin,dataPuHist_->GetBinContent(bin));
+  }
 
   h_Pho_Energy_noCut      = iFile->make<TH1D>("h_Pho_Energy_noCut","h_Pho_Energy_noCut",200,0.,1000.);
   h_Pho_Pt_noCut          = iFile->make<TH1D>("h_Pho_Pt_noCut","h_Pho_Pt_noCut",200,0.,600.);
@@ -261,6 +303,8 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
 
   h_VBFjets_invMass       = iFile->make<TH1D>("h_VBFjets_invMass","h_VBFjets_invMass",500,0.,5000.);
   h_VBFjets_dEta          = iFile->make<TH1D>("h_VBFjets_dEta","h_VBFjets_dEta",180,-9.,9.);
+  h_VBFjets_invMass_Final = iFile->make<TH1D>("h_VBFjets_invMass_Final","h_VBFjets_invMass_Final",500,0.,5000.);
+  h_VBFjets_dEta_Final    = iFile->make<TH1D>("h_VBFjets_dEta_Final","h_VBFjets_dEta_Final",180,-9.,9.);
   
   if(triggerPaths_.at(0)=="ALL")
   {
@@ -305,7 +349,7 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   HLT_PhotonPt_denum->Sumw2();
   HLT_MET_denum = new TH1D("HLT_MET_denum","",20,0.,400.);
   HLT_MET_denum->Sumw2();
-  
+
   nTot=0.;
   nTot_step0=0.;
   nTotSelected_step0=0.;
@@ -316,12 +360,7 @@ FlashGXAnalysis::FlashGXAnalysis(const edm::ParameterSet& iConfig)
   nTotSelected_step5=0.;
   nTotSelected_step6=0.;
   nTotSelected_step7=0.;
-  
-  if(sampleType_=="signal")
-  {
-     TFile* higgsPtFile = TFile::Open(higgsPtReweighting_.c_str()); 
-     h_higgsPtReweighting = (TH1D*)higgsPtFile->Get("h_Higgs_pt_reweighting");
-  }
+
 }
 
 FlashGXAnalysis::~FlashGXAnalysis()
@@ -353,7 +392,7 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   double rho = *rho_;
 
   Handle<View<reco::GenParticle> > genParticles;
-  ev.getByToken(genParticleToken_, genParticles );
+  if(sampleType_!="data") ev.getByToken(genParticleToken_, genParticles);
 
   Handle<View<reco::Vertex> > vertices;
   ev.getByToken(vertexToken_, vertices); 
@@ -377,9 +416,15 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   for(size_t j=0;j<inputTagJets_.size();++j)
       ev.getByToken(jetsToken_[j],Jets[j]);
 
+  int irun = ev.id().run();
+  int ilumi = ev.luminosityBlock();
+  long int ievent = ev.id().event();
+  long int ibx = ev.bunchCrossing();
+
   double wTot = 1.;
   double wGen = 1.;
   double wSig = 1.;
+  double wPu = 1.;
  
   //compute weights
   if(sampleType_!="data")
@@ -392,10 +437,13 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
         if(genInfo.isValid()) wGen = infos_[sampleName_][0]*infos_[sampleName_][1]*infos_[sampleName_][3]*infos_[sampleName_][4]*TMath::Sign(1, genInfo->weight())/(infos_[sampleName_][2]*(1-infos_[sampleName_][5]));
         else wGen = infos_[sampleName_][0]*infos_[sampleName_][1]*infos_[sampleName_][3]*infos_[sampleName_][4]/infos_[sampleName_][2];
      }
+     wPu = puWeight(puInfo,mcPuHist_,dataPuHist_);
   }
   
-  wTot *= wGen*wSig;
-  //cout << "Weights: " << wGen << "(wGen) - " << wSig << "(wSig) - " << wTot << "(wTot)"   << endl;
+  wTot *= wGen*wSig*wPu;
+  //cout << "Weights: " << wGen << "(wGen) - " << wSig << "(wSig) - " << wPu << "(wPu) - " << wTot << "(wTot)"   << endl;
+
+  h_nVtx->Fill((double)vertices->size(),wTot);
   
   nTot_step0+=wTot;
   if(photons->size() == 0) nTotSelected_step0+=wTot;
@@ -403,6 +451,31 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //apply global event selection
   nTot+=wTot;
+
+  //muon selections
+  std::vector<edm::Ptr<flashgg::Muon> > goodMuons;
+  if(!useStdMuonID_)
+  {
+     goodMuons = selectAllMuonsSum16(muons->ptrs(),vertices->ptrs(),muonEtaThres_,leptonPtThres_,muMiniIsoSumRelThres_);
+  }else{
+     goodMuons = selectAllMuons(muons->ptrs(),vertices->ptrs(),muonEtaThres_,leptonPtThres_,muPFIsoSumRelThres_);
+  }
+
+  //electron selections
+  std::vector<edm::Ptr<Electron> > goodElectrons;
+  if(!useStdElectronID_) 
+  {
+     goodElectrons = selectAllElectronsSum16(electrons->ptrs(),vertices->ptrs(),leptonPtThres_,electronEtaThres_,true,true,elMiniIsoThres_[0],
+                                             elMiniIsoThres_[1],impactParam_[0],impactParam_[1],impactParam_[2],impactParam_[3],
+                                             rho,ev.isRealData());
+  }else{
+     goodElectrons = selectStdAllElectrons(electrons->ptrs(),vertices->ptrs(),leptonPtThres_,electronEtaThres_,useElectronMVARecipe_,useElectronLooseID_,
+                                           rho,ev.isRealData());
+  }
+
+  //no good muons and electrons
+  if(goodMuons.size() != 0 || goodElectrons.size() != 0) return;
+  nTotSelected_step1+=wTot;
 
   //compute trigger efficiencies
   int selectedPhoton=0;
@@ -433,49 +506,23 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //apply photonID and select the best photon
   selectedPhoton=0;
-  int nSelectedPhotons=0;
   maxPt=0.;
-  for(unsigned int phoIndex=0; phoIndex<photons->size(); phoIndex++) 
-  {
-     edm::Ptr<flashgg::Photon> ipho = photons->ptrAt(phoIndex); 
-     
-     if(applyCuBasedPhotonID_)
-     {
-        if(isGoodPhotonCutBased(ipho,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
-        else continue;
-     }
-     else if(applyMVAPhotonID_)
-     {
-        if(isGoodPhotonMVA(ipho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
-        else continue;
-     }
-     else if(applyHggPhotonID_)
-     {
-        if(isGoodPhotonHgg(ipho,vtx,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
-        else continue;
-     }
-   
-     if(ipho->pt()>maxPt)
-     {
-        maxPt = ipho->pt();
-        selectedPhoton = phoIndex;
-     }        
-  }   
+  selectedPhoton = selectedPhotonIndex(photons,vtx,rho).first;
+
+  vbfjets.clear();
+  vbfjets = vbfJets(Jets,thePhoton,vtx,0);
+
+  fillTree(outTree,irun,ilumi,ievent,ibx,wTot,rho,vertices,mets,photons,selectedPhoton,Jets,&vbfjets,0);
 
   //Photon selections 
-  if(nSelectedPhotons!=1) return;
-  nTotSelected_step1+=wTot;
+  if(selectedPhotonIndex(photons,vtx,rho).second!=1) return;
+  nTotSelected_step2+=wTot;
   thePhoton = photons->ptrAt(selectedPhoton);
-
-  h_Pho_Energy->Fill(thePhoton->energy(),wTot);
-  h_Pho_Pt->Fill(thePhoton->pt(),wTot);
-  h_Pho_Eta->Fill(thePhoton->eta(),wTot);
-  h_Pho_Phi->Fill(thePhoton->phi(),wTot);
 
   //metCut & deltaPhi(MET-Photon) 
   if(theMet->getCorPt()<metThres_) return; 
   if(fabs(deltaPhiPhotonMet)<dPhiPhotonMetThres_) return;
-  nTotSelected_step2+=wTot;
+  nTotSelected_step3+=wTot;
 
   HLT_PhotonPt_denum->Fill(thePhoton->pt(),wTot);
   HLT_MET_denum->Fill(theMet->getCorPt(),wTot);
@@ -510,6 +557,7 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
      if(trigResults->size()>1000) HLT_Names.resize(trigResults->size());
      for(unsigned iPath=0; iPath<trigResults->size(); iPath++)
      {
+         //cout << iPath << " " << trigNames.triggerName(iPath) << endl;
          if(HLT_Names.at(iPath)=="") HLT_Names.at(iPath) = string(trigNames.triggerName(iPath));
          bool passTrig=getHLTResults(trigResults,trigNames,trigNames.triggerName(iPath));
          if(passTrig==true)
@@ -522,37 +570,6 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
 
   //apply trigger selections
   if(n_triggers<1) return;
-  nTotSelected_step3+=wTot;
-
-  h_MET_Pt->Fill(theMet->getCorPt(),wTot);
-  h_MET_Phi->Fill(metPhiCorr(theMet),wTot);
-
-  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wTot);
-  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wTot);
-
-  //muon selections
-  std::vector<edm::Ptr<flashgg::Muon> > goodMuons;
-  if(!useStdMuonID_)
-  {
-     goodMuons = selectAllMuonsSum16(muons->ptrs(),vertices->ptrs(),muonEtaThres_,leptonPtThres_,muMiniIsoSumRelThres_);
-  }else{
-     goodMuons = selectAllMuons(muons->ptrs(),vertices->ptrs(),muonEtaThres_,leptonPtThres_,muPFIsoSumRelThres_);
-  }
-
-  //electron selections
-  std::vector<edm::Ptr<Electron> > goodElectrons;
-  if(!useStdElectronID_) 
-  {
-     goodElectrons = selectAllElectronsSum16(electrons->ptrs(),vertices->ptrs(),leptonPtThres_,electronEtaThres_,true,true,elMiniIsoThres_[0],
-                                             elMiniIsoThres_[1],impactParam_[0],impactParam_[1],impactParam_[2],impactParam_[3],
-                                             rho,ev.isRealData());
-  }else{
-     goodElectrons = selectStdAllElectrons(electrons->ptrs(),vertices->ptrs(),leptonPtThres_,electronEtaThres_,useElectronMVARecipe_,useElectronLooseID_,
-                                           rho,ev.isRealData());
-  }
-
-  //no good muons and electrons
-  if(goodMuons.size() != 0 || goodElectrons.size() != 0) return;
   nTotSelected_step4+=wTot;
 
   int iColl = 0;
@@ -573,8 +590,16 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
       h_nJets_noCut->Fill((int)Jets[iColl]->size(),wTot);
   }
 
-  vbfjets.clear();
-  vbfjets = vbfJets(Jets,thePhoton,vtx,0);
+  h_Pho_Energy->Fill(thePhoton->energy(),wTot);
+  h_Pho_Pt->Fill(thePhoton->pt(),wTot);
+  h_Pho_Eta->Fill(thePhoton->eta(),wTot);
+  h_Pho_Phi->Fill(thePhoton->phi(),wTot);
+
+  h_MET_Pt->Fill(theMet->getCorPt(),wTot);
+  h_MET_Phi->Fill(metPhiCorr(theMet),wTot);
+
+  h_dPhiMETPho->Fill(deltaPhiPhotonMet,wTot);
+  h_MtMETPho->Fill(computeMtMETPhoton(thePhoton,theMet),wTot);
 
   for(unsigned int jetIndex=0;jetIndex<vbfjets.size();jetIndex++) 
   {
@@ -630,6 +655,8 @@ void FlashGXAnalysis::analyze(const edm::Event& ev, const edm::EventSetup& iSetu
   h_VBFjet2_Pt_Final->Fill(vbfjets[1].pt(),wTot);
   h_VBFjet2_Eta_Final->Fill(vbfjets[1].eta(),wTot);
   h_VBFjet2_Phi_Final->Fill(vbfjets[1].phi(),wTot);
+  h_VBFjets_invMass_Final->Fill(invMassJets,wTot);
+  h_VBFjets_dEta_Final->Fill(vbfjets[0].eta()-vbfjets[1].eta(),wTot);
 
   vbfjets.clear();
  
@@ -716,53 +743,67 @@ void FlashGXAnalysis::endJob()
    h_numberOfEvents->SetBinContent(2,nTotSelected_step1); 
    h_Efficiency->SetBinContent(2,eff); 
    h_Efficiency->SetBinError(2,eff_error); 
+   h_Efficiency_num->SetBinContent(2,(double)nTotSelected_step1); 
+   h_Efficiency_denum->SetBinContent(2,(double)nTot); 
 
    eff=(double)nTotSelected_step2/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(3,nTotSelected_step2); 
    h_Efficiency->SetBinContent(3,eff); 
    h_Efficiency->SetBinError(3,eff_error); 
+   h_Efficiency_num->SetBinContent(3,(double)nTotSelected_step2); 
+   h_Efficiency_denum->SetBinContent(3,(double)nTot); 
  
    eff=(double)nTotSelected_step3/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(4,nTotSelected_step3); 
    h_Efficiency->SetBinContent(4,eff); 
    h_Efficiency->SetBinError(4,eff_error);
+   h_Efficiency_num->SetBinContent(4,(double)nTotSelected_step3); 
+   h_Efficiency_denum->SetBinContent(4,(double)nTot); 
 
    eff=(double)nTotSelected_step4/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(5,nTotSelected_step4); 
    h_Efficiency->SetBinContent(5,eff); 
    h_Efficiency->SetBinError(5,eff_error);
+   h_Efficiency_num->SetBinContent(5,(double)nTotSelected_step4); 
+   h_Efficiency_denum->SetBinContent(5,(double)nTot); 
 
    eff=(double)nTotSelected_step5/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(6,nTotSelected_step5); 
    h_Efficiency->SetBinContent(6,eff); 
    h_Efficiency->SetBinError(6,eff_error);
+   h_Efficiency_num->SetBinContent(6,(double)nTotSelected_step5); 
+   h_Efficiency_denum->SetBinContent(6,(double)nTot); 
    
    eff=(double)nTotSelected_step6/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(7,nTotSelected_step6); 
    h_Efficiency->SetBinContent(7,eff); 
    h_Efficiency->SetBinError(7,eff_error);
+   h_Efficiency_num->SetBinContent(7,(double)nTotSelected_step6); 
+   h_Efficiency_denum->SetBinContent(7,(double)nTot); 
 
    eff=(double)nTotSelected_step7/(double)nTot;
    eff_error=sqrt(eff*(1-eff)/(double)nTot);
    h_numberOfEvents->SetBinContent(8,nTotSelected_step7); 
    h_Efficiency->SetBinContent(8,eff); 
    h_Efficiency->SetBinError(8,eff_error);
+   h_Efficiency_num->SetBinContent(8,(double)nTotSelected_step7); 
+   h_Efficiency_denum->SetBinContent(8,(double)nTot); 
    
 
    cout << "------------- Preselections & HLT paths -------------" << endl; 
    cout << "Events with 0 photons  : " << (double)nTotSelected_step0/(double)nTot_step0 << endl; 
-   cout << "Photon selections      : " << (double)nTotSelected_step1/(double)nTot << endl;  
-   cout << "MET selections         : " << (double)nTotSelected_step2/(double)nTot << endl; 
-   cout << "HLT selections         : " << (double)nTotSelected_step3/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step3/(double)nTotSelected_step3 << endl; 
-   cout << "No good electrons/muons: " << (double)nTotSelected_step4/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step4/(double)nTotSelected_step3 << endl;    
-   cout << "VBF jets selections    : " << (double)nTotSelected_step5/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step5/(double)nTotSelected_step3 << endl;
-   cout << "VBF invMass selection  : " << (double)nTotSelected_step6/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step6/(double)nTotSelected_step3 << endl;
-   cout << "VBF dEta selection     : " << (double)nTotSelected_step7/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step7/(double)nTotSelected_step3 << endl;
+   cout << "No good electrons/muons: " << (double)nTotSelected_step1/(double)nTot << endl;   
+   cout << "Photon selections      : " << (double)nTotSelected_step2/(double)nTot << endl;  
+   cout << "MET selections         : " << (double)nTotSelected_step3/(double)nTot << endl; 
+   cout << "HLT selections         : " << (double)nTotSelected_step4/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step3/(double)nTotSelected_step4 << endl; 
+   cout << "VBF jets selections    : " << (double)nTotSelected_step5/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step5/(double)nTotSelected_step4 << endl;
+   cout << "VBF invMass selection  : " << (double)nTotSelected_step6/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step6/(double)nTotSelected_step4 << endl;
+   cout << "VBF dEta selection     : " << (double)nTotSelected_step7/(double)nTot << ", wrt HLT: " << (double)nTotSelected_step7/(double)nTotSelected_step4 << endl;
    
 }
 
@@ -829,11 +870,11 @@ double FlashGXAnalysis::ptWeight(Handle<View<reco::GenParticle> > genParticles)
    return ptWeight;
 }
 
-double FlashGXAnalysis::puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo)
+double FlashGXAnalysis::puWeight(edm::Handle<std::vector<PileupSummaryInfo> > puInfo, TH1D* mcPuHist, TH1D* dataPuHist)
 {
    double puWeight = 1.;
-   /*double truePu = -1.;
-   double obsPu = -1.;
+   double truePu = -1.;
+   //double obsPu = -1.;
 
    std::vector<PileupSummaryInfo>::const_iterator puInTime = puInfo->end();   
    for(std::vector<PileupSummaryInfo>::const_iterator pu = puInfo->begin(); pu != puInfo->end() ; ++pu) 
@@ -841,12 +882,20 @@ double FlashGXAnalysis::puWeight(edm::Handle<std::vector<PileupSummaryInfo> > pu
        if(pu->getBunchCrossing()==0)
        {
           truePu = pu->getTrueNumInteractions();
-          obsPu  = pu->getPU_NumInteractions();
+          //obsPu  = pu->getPU_NumInteractions();
           break;
        }
        
-   }*/
+   }
    
+   if(dataPuHist->GetBinContent(round(truePu)+1) >0. && mcPuHist->GetBinContent(round(truePu)+1) >0.) 
+   {
+      puWeight = dataPuHist->GetBinContent(round(truePu)+1)/mcPuHist->GetBinContent(round(truePu)+1);
+   }else{ 
+      puWeight = 0.;
+   }
+   
+   //cout << "truePu: " << truePu << " ---> " <<  puWeight << endl;
    return puWeight;
 }
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -998,6 +1047,43 @@ bool FlashGXAnalysis::isGoodPhotonMVA(edm::Ptr<flashgg::Photon> ipho)
   return isGood; 
 
 }
+
+std::pair<int,int> FlashGXAnalysis::selectedPhotonIndex(Handle<View<flashgg::Photon> > photons,edm::Ptr<reco::Vertex> vtx,double rho)
+{
+  double maxPt = 0.;
+  int selectedPhoton = -1;
+  int nSelectedPhotons = 0;
+  std::pair<int,int> pair_tmp;
+
+  for(unsigned int phoIndex=0; phoIndex<photons->size(); phoIndex++) 
+  {
+     edm::Ptr<flashgg::Photon> ipho = photons->ptrAt(phoIndex); 
+     
+     if(applyCuBasedPhotonID_)
+     {
+        if(isGoodPhotonCutBased(ipho,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
+        else continue;
+     }
+     else if(applyMVAPhotonID_)
+     {
+        if(isGoodPhotonMVA(ipho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
+        else continue;
+     }
+     else if(applyHggPhotonID_)
+     {
+        if(isGoodPhotonHgg(ipho,vtx,rho) && ipho->pt()>photonPtThres_ && ipho->full5x5_r9()>photonR9Thres_ && isInEcal(ipho) && ipho->isEB()) nSelectedPhotons++;  
+        else continue;
+     }
+   
+     if(ipho->pt()>maxPt)
+     {
+        maxPt = ipho->pt();
+        selectedPhoton = phoIndex;
+     }        
+  }
+  pair_tmp = make_pair(selectedPhoton,nSelectedPhotons);
+  return pair_tmp;
+}   
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 bool FlashGXAnalysis::isInEcal(edm::Ptr<flashgg::Photon> ipho)
 {
@@ -1209,18 +1295,179 @@ std::vector<reco::Candidate::LorentzVector> FlashGXAnalysis::vbfJets(JetCollecti
    return vbfJets;
 }
 ///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void FlashGXAnalysis::setTree(TTree *outTree)
+{
+   outTree->Branch("run",&run,"run/I");
+   outTree->Branch("lumi",&lumi,"lumi/I");
+   outTree->Branch("event",&event,"event/L");
+   outTree->Branch("bx",&bx,"bx/L");
+   outTree->Branch("weight",&weight,"weight/D");
+   outTree->Branch("nVtx",&nVtx,"nVtx/I");
+   outTree->Branch("MET_pt",&MET_pt,"MET_pt/D");
+   outTree->Branch("MET_phi",&MET_phi,"MET_phi/D");
+   outTree->Branch("deltaPhi_MET_photon",deltaPhi_MET_photon,TString::Format("deltaPhi_MET_photon[%i]/D",MAXVEC));
+   outTree->Branch("Mt_MET_photon",Mt_MET_photon,TString::Format("Mt_MET_photon[%i]/D",MAXVEC));
+   outTree->Branch("photon_pt",photon_pt,TString::Format("photon_pt[%i]/D",MAXVEC));
+   outTree->Branch("photon_energy",photon_energy,TString::Format("photon_energy[%i]/D",MAXVEC));
+   outTree->Branch("photon_eta",photon_eta,TString::Format("photon_eta[%i]/D",MAXVEC));
+   outTree->Branch("photon_phi",photon_phi,TString::Format("photon_phi[%i]/D",MAXVEC));
+   outTree->Branch("photon_r9",photon_r9,TString::Format("photon_r9[%i]/D",MAXVEC));
+   outTree->Branch("photon_egMVA",photon_egMVA,TString::Format("photon_egMVA[%i]/D",MAXVEC));
+   outTree->Branch("photon_passElectronVeto",photon_passElectronVeto,TString::Format("photon_passElectronVeto[%i]/B",MAXVEC));
+   outTree->Branch("photon_passCutID",photon_passCutID,TString::Format("photon_passCutID[%i]/B",MAXVEC));
+   outTree->Branch("photon_passHggID",photon_passHggID,TString::Format("photon_passHggID[%i]/B",MAXVEC));
+   outTree->Branch("photon_passMVAID",photon_passMVAID,TString::Format("photon_passMVAID[%i]/B",MAXVEC));
+   outTree->Branch("selPhoton_index",&selPhoton_index,"selPhoton_index/I");
+   outTree->Branch("jet_pt",jet_pt,TString::Format("jet_pt[%i]/D",MAXVEC));
+   outTree->Branch("jet_energy",jet_energy,TString::Format("jet_energy[%i]/D",MAXVEC));
+   outTree->Branch("jet_eta",jet_eta,TString::Format("jet_eta[%i]/D",MAXVEC));
+   outTree->Branch("jet_phi",jet_phi,TString::Format("jet_phi[%i]/D",MAXVEC));
+   outTree->Branch("deltaPhi_jet_photon",deltaPhi_jet_photon,TString::Format("deltaPhi_jet_photon[%i]/D",MAXVEC));
+   outTree->Branch("deltaEta_jet_photon",deltaEta_jet_photon,TString::Format("deltaEta_jet_photon[%i]/D",MAXVEC));
+   outTree->Branch("deltaR_jet_photon",deltaR_jet_photon,TString::Format("deltaR_jet_photon[%i]/D",MAXVEC));
+   outTree->Branch("n_jets",&n_jets,"n_jets/I");
+   outTree->Branch("vbfjet_pt",vbfjet_pt,TString::Format("vbfjet_pt[%i]/D",MAXVEC));
+   outTree->Branch("vbfjet_energy",vbfjet_energy,TString::Format("vbfjet_energy_photon[%i]/D",MAXVEC));
+   outTree->Branch("vbfjet_eta",vbfjet_eta,TString::Format("vbfjet_eta[%i]/D",MAXVEC));
+   outTree->Branch("vbfjet_phi",vbfjet_phi,TString::Format("vbfjet_phi[%i]/D",MAXVEC));
+   outTree->Branch("deltaPhi_vbfjet_photon",deltaPhi_vbfjet_photon,TString::Format("deltaPhi_vbfjet_photon[%i]/D",MAXVEC));
+   outTree->Branch("deltaEta_vbfjet_photon",deltaEta_vbfjet_photon,TString::Format("deltaEta_vbfjet_photon[%i]/D",MAXVEC));
+   outTree->Branch("deltaR_vbfjet_photon",deltaR_vbfjet_photon,TString::Format("deltaR_vbfjet_photon[%i]/D",MAXVEC));
+   outTree->Branch("n_vbfjets",&n_vbfjets,"n_vbfjets/I");
+   outTree->Branch("deltaEta_selVbfJets",&deltaEta_selVbfJets,"deltaEta_selVbfJets/D");
+   outTree->Branch("invMass_selVbfJets",&invMass_selVbfJets,"invMass_selVbfJets/D");
+}
 
+void FlashGXAnalysis::fillTree(TTree *outTree,int irun,int ilumi,long int ievent,long int ibx,double wTot,double rho,Handle<View<reco::Vertex> > vertices,Handle<View<flashgg::Met> > mets,Handle<View<flashgg::Photon> > photons, int selPhoton_pos, JetCollectionVector Jets, std::vector<reco::Candidate::LorentzVector>* vbfJets, int iColl)
+{
+   weight = 1.;
+   run = -999;
+   lumi = -999;
+   event = -999;
+   bx = -999;
+   nVtx = -999;
+   MET_pt=-999.; 
+   MET_phi=-999.; 
+   selPhoton_index=-1;
+   n_jets = -1; 
+   n_vbfjets = -1; 
+   deltaEta_selVbfJets=-999.;  
+   invMass_selVbfJets=-999.;  
+   for(int ii=0; ii<MAXVEC;ii++)
+   {
+       deltaPhi_MET_photon[ii]=-999.; 
+       Mt_MET_photon[ii]=-999.; 
+       photon_pt[ii]=-999.; 
+       photon_energy[ii]=-999.; 
+       photon_phi[ii]=-999.; 
+       photon_r9[ii]=-999.; 
+       photon_eta[ii]=-999.; 
+       photon_egMVA[ii]=-999.; 
+       photon_passElectronVeto[ii]=0; 
+       photon_passCutID[ii]=0; 
+       photon_passHggID[ii]=0; 
+       photon_passMVAID[ii]=0; 
+       jet_pt[ii]=-999.; 
+       jet_energy[ii]=-999.; 
+       jet_phi[ii]=-999.; 
+       jet_eta[ii]=-999.;
+       deltaPhi_jet_photon[ii]=-999.; 
+       deltaEta_jet_photon[ii]=-999.; 
+       deltaR_jet_photon[ii]=-999.;
+       vbfjet_pt[ii]=-999.; 
+       vbfjet_energy[ii]=-999.; 
+       vbfjet_phi[ii]=-999.; 
+       vbfjet_eta[ii]=-999.;
+       deltaPhi_vbfjet_photon[ii]=-999.; 
+       deltaEta_vbfjet_photon[ii]=-999.; 
+       deltaR_vbfjet_photon[ii]=-999.;
+   }
+
+   run = irun;
+   lumi = ilumi;
+   event = ievent;
+   bx = ibx;
+ 
+   weight = wTot;
+ 
+   edm::Ptr<reco::Vertex> vtx = vertices->ptrAt(0); 
+   nVtx = vertices->size();   
+ 
+   edm::Ptr<flashgg::Met> theMet = mets->ptrAt(0);
+   MET_pt = theMet->getCorPt();
+   MET_phi = metPhiCorr(theMet);
+ 
+   unsigned int maxSize=MAXVEC;
+   if(photons->size()<MAXVEC) maxSize = photons->size();
+   for(unsigned int phoIndex=0; phoIndex<maxSize; phoIndex++) 
+   {
+      edm::Ptr<flashgg::Photon> thePhoton = photons->ptrAt(phoIndex); 
+      photon_pt[phoIndex] = thePhoton->pt();
+      photon_energy[phoIndex] = thePhoton->energy();
+      photon_eta[phoIndex] = thePhoton->eta();
+      photon_phi[phoIndex] = thePhoton->phi();
+      photon_r9[phoIndex] = thePhoton->full5x5_r9();
+      photon_egMVA[phoIndex] = thePhoton->egmMVA();
+      photon_passElectronVeto[phoIndex] = thePhoton->passElectronVeto();
+      photon_passCutID[phoIndex] = isGoodPhotonCutBased(thePhoton,rho);
+      photon_passHggID[phoIndex] = isGoodPhotonMVA(thePhoton);
+      photon_passMVAID[phoIndex] = isGoodPhotonHgg(thePhoton,vtx,rho);
+
+      deltaPhi_MET_photon[phoIndex] = deltaPhi(metPhiCorr(theMet),thePhoton->phi()); 
+      Mt_MET_photon[phoIndex] = computeMtMETPhoton(thePhoton,theMet); 
+   }
+ 
+   selPhoton_index = selPhoton_pos;  
+ 
+   edm::Ptr<flashgg::Photon> thePhoton;
+   if(selPhoton_index>-1) thePhoton = photons->ptrAt(selPhoton_index); 
+ 
+   n_jets = Jets[iColl]->size();
+   maxSize=MAXVEC;
+   if(Jets[iColl]->size()<MAXVEC) maxSize = Jets[iColl]->size();
+   for(unsigned int jetIndex = 0;jetIndex<maxSize;jetIndex++) 
+   {
+      edm::Ptr<flashgg::Jet> theJet = Jets[iColl]->ptrAt(jetIndex);
+      jet_pt[jetIndex] = theJet->pt();
+      jet_energy[jetIndex] = theJet->energy();
+      jet_eta[jetIndex] = theJet->eta();  
+      jet_phi[jetIndex] = theJet->phi(); 
+      if(selPhoton_index>-1){
+         deltaPhi_jet_photon[jetIndex] = deltaPhi(theJet->phi(),thePhoton->phi());
+         deltaEta_jet_photon[jetIndex] = theJet->eta()-thePhoton->eta();
+         deltaR_jet_photon[jetIndex] = deltaR(theJet->eta(),theJet->phi(),thePhoton->eta(),thePhoton->phi()); 
+      }  
+   } 
+
+   n_vbfjets = vbfJets->size();
+   maxSize=MAXVEC;
+   if(vbfJets->size()<MAXVEC) maxSize = vbfJets->size();
+   for(unsigned int vbfjetIndex = 0;vbfjetIndex<maxSize;vbfjetIndex++) 
+   {
+      vbfjet_pt[vbfjetIndex] = vbfJets->at(vbfjetIndex).pt();
+      vbfjet_energy[vbfjetIndex] = vbfJets->at(vbfjetIndex).energy();
+      vbfjet_eta[vbfjetIndex] = vbfJets->at(vbfjetIndex).eta();  
+      vbfjet_phi[vbfjetIndex] = vbfJets->at(vbfjetIndex).phi(); 
+      if(selPhoton_index>-1)
+      {
+         deltaPhi_vbfjet_photon[vbfjetIndex] = deltaPhi(vbfJets->at(vbfjetIndex).phi(),thePhoton->phi());
+         deltaEta_vbfjet_photon[vbfjetIndex] = vbfJets->at(vbfjetIndex).eta()-thePhoton->eta();
+         deltaR_vbfjet_photon[vbfjetIndex] = deltaR(vbfJets->at(vbfjetIndex).eta(),vbfJets->at(vbfjetIndex).phi(),thePhoton->eta(),thePhoton->phi());  
+      } 
+   } 
+
+   if(vbfJets->size()>1)
+   {
+      reco::Candidate::LorentzVector sumJets = vbfjets[0] + vbfjets[1];
+      invMass_selVbfJets = sumJets.M();
+      deltaEta_selVbfJets = vbfJets->at(0).eta() - vbfJets->at(1).eta();
+   }
+
+   outTree->Fill();
+ 
+}
+///------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #include "FWCore/PluginManager/interface/ModuleDef.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(FlashGXAnalysis);
-
-
-
-
-
-
-
-
-
-
 

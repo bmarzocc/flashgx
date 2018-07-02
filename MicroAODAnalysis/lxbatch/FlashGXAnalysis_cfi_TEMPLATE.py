@@ -13,13 +13,14 @@ for i in range(0,maxJetCollections):
 
 flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
 
+    sampleType                        = cms.string("data"),
     #sampleType                        = cms.string("signal"),
-    sampleType                        = cms.string("background"),
+    #sampleType                        = cms.string("background"),
     sampleName                        = cms.string("NAMESample"),
     mcInfos                           = cms.string("mc_infos.dat"), #name,lumi,sigma,k,N 
 
     genEventInfo                      = cms.InputTag("generator","","SIM"),
-    pileupInfo                        = cms.InputTag("slimmedAddPileupInfo","","PAT"),
+    pileupInfo                        = cms.InputTag("slimmedAddPileupInfo"),
     triggerResults                    = cms.InputTag("TriggerResults","","HLT"),
     #rhoCollection                     = cms.InputTag("fixedGridRhoAll"),
     rhoCollection                     = cms.InputTag("fixedGridRhoFastjetAll"),
@@ -33,24 +34,29 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     DiPhotonTag                       = cms.InputTag("flashggDiPhotons"),
     
     #Higgs_pt reweighting
-    #higgsPtReweighting                = cms.string("data/GluGluHToGX_pt_reweighting.root"),
-    higgsPtReweighting                = cms.string("data/VBFHToGX_pt_reweighting.root"),
+    #higgsPtReweighting                = cms.string("GluGluHToGX_pt_reweighting.root"),
+    higgsPtReweighting                = cms.string("VBFHToGX_pt_reweighting.root"),
+
+    mcPuPath                          = cms.string("MCPILEUP"),
+
+    dataPuPath                        = cms.string("2017_HLT_Photon_EOY2017ReRecoV1_TruePU_69p2mb.root"),
+    #dataPuPath                        = cms.string("2017_HLT_DiJet_EOY2017ReRecoV1_TruePU_69p2mb.root"),
 
     #triggerPaths                      = cms.vstring("NONE"), #No trigger studies
     #triggerPaths                      = cms.vstring("ALL"), #Make trigger studies
     triggerPaths                      = cms.vstring("HLT_Photon50_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3_PFMET50",
                                                     "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ300DEta3",
                                                     "HLT_Photon75_R9Id90_HE10_IsoM_EBOnly_PFJetsMJJ600DEta3",
-                                                    "HLT_DiJet110_35_Mjj650_PFMET110",
-                                                    "HLT_DiJet110_35_Mjj650_PFMET120",
-                                                    "HLT_DiJet110_35_Mjj650_PFMET130"
+                                                    #"HLT_DiJet110_35_Mjj650_PFMET110",
+                                                    #"HLT_DiJet110_35_Mjj650_PFMET120",
+                                                    #"HLT_DiJet110_35_Mjj650_PFMET130"
                                                    ), 
 
-    photonPtThres                     = cms.double(20.),
+    photonPtThres                     = cms.double(75.),
     photonR9Thres                     = cms.double(0.8),
 
-    applyCuBasedPhotonID              = cms.bool(True),
-    applyMVAPhotonID                  = cms.bool(False),
+    applyCuBasedPhotonID              = cms.bool(False),
+    applyMVAPhotonID                  = cms.bool(True),
     applyHggPhotonID                  = cms.bool(False),
 
     #80X MVAphotonID 
@@ -161,8 +167,8 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     metPhiCorr0                    = cms.vdouble(0.,0.), #x,y
     metPhiCorr1                    = cms.vdouble(0.,0.), #x,y
 
-    metThres                       = cms.double(40.00),
-    dPhiPhotonMetThres             = cms.double(0.),
+    metThres                       = cms.double(45.00),
+    dPhiPhotonMetThres             = cms.double(1.),
 
     #electrons and muons selection
     useStdMuonID                   = cms.bool(False),
@@ -204,6 +210,6 @@ flashgxanalysis = cms.EDAnalyzer("FlashGXAnalysis",
     #pujidWpPtBin4                  = cms.vdouble(-0.89, -0.52, -0.38, -0.30), # 94X loose
     rmsforwardCut                  = cms.double(3.0), # default was 0.03 , running on loose pujid
     
-    deltaEtaJets                   = cms.double(2.),
+    deltaEtaJets                   = cms.double(3.),
     invMassJets                    = cms.double(300.),
 )
