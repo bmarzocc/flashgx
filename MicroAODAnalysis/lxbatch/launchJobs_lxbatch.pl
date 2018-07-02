@@ -243,7 +243,7 @@ while (my $line = <LISTOFSamples>)
  }
 
  system ("rm ".$LISTOFFiles) ;
- #system ("sh lancia.sh");
+ system ("sh lancia.sh");
  system ("rm lancia.sh");
 }
 
